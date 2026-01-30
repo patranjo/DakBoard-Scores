@@ -38,7 +38,7 @@ def fetch_birthdays():
         timeMax=time_max,
         singleEvents=True,
         orderBy='startTime',
-        maxResults=15
+        maxResults=50
     ).execute()
     
     events = events_result.get('items', [])
@@ -89,27 +89,30 @@ def generate_html(birthdays):
       font-family: 'Quicksand', sans-serif;
       background: transparent;
       color: #fff;
-      padding: 8px 12px;
+      padding: 10px 14px;
       min-height: 100vh;
     }}
 
     h1 {{
-      font-size: 18px;
+      font-size: 24px;
       font-weight: 700;
       margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #fff;
       letter-spacing: 0.5px;
     }}
 
     .birthday-list {{
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      margin-top: 8px;
     }}
 
     .birthday-item {{
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 500;
     }}
 
@@ -118,7 +121,7 @@ def generate_html(birthdays):
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-right: 10px;
+      margin-right: 12px;
     }}
 
     .date {{
@@ -127,7 +130,7 @@ def generate_html(birthdays):
     }}
 
     .none {{
-      font-size: 12px;
+      font-size: 16px;
       opacity: 0.7;
     }}
   </style>
