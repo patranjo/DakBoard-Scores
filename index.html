@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>College Sports - Aggies & SEC</title>
+  <title>College Sports - Aggies, SEC & Top 25</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
@@ -14,6 +14,8 @@
       --card-border: rgba(255, 255, 255, 0.1);
       --aggie-maroon: #500000;
       --favorite-bg: rgba(80, 0, 0, 0.85);
+      --top25-bg: rgba(251, 191, 36, 0.15);
+      --top25-border: rgba(251, 191, 36, 0.4);
       --text-primary: #fff;
       --text-muted: rgba(255,255,255,0.5);
       --accent-live: #ef4444;
@@ -75,6 +77,15 @@
       padding: 2px 0 1px;
       border-bottom: 1px solid var(--card-border);
     }
+    .section-label {
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.5rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: var(--score-winner);
+      padding: 3px 0 1px;
+      margin-top: 2px;
+    }
     .game {
       display: flex;
       align-items: center;
@@ -85,6 +96,14 @@
       border: 1px solid var(--card-border);
     }
     .game.favorite {
+      background: var(--favorite-bg);
+      border-color: var(--aggie-maroon);
+    }
+    .game.top25 {
+      background: var(--top25-bg);
+      border-color: var(--top25-border);
+    }
+    .game.favorite.top25 {
       background: var(--favorite-bg);
       border-color: var(--aggie-maroon);
     }
@@ -160,7 +179,7 @@
 </head>
 <body>
 <div class="widget">
-  <div class="header">College Scoreboard</div>
+  <div class="header">🎓 Aggies, SEC & Top 25</div>
   <div class="scroll-container" id="scrollContainer">
     <div class="scroll-content" id="content">
       <div class="loading">Loading...</div>
@@ -204,8 +223,14 @@ function isSec(team) {
   return CONFIG.secTeams.includes(abbr) || CONFIG.secNames.some(n => name.includes(n.toUpperCase()));
 }
 
+function isRanked(team) {
+  const rank = team.curatedRank?.current;
+  return rank && rank <= 25;
+}
+
 function isSecGame(e) { return e.competitions[0].competitors.some(isSec); }
 function hasFav(e) { return e.competitions[0].competitors.some(isFavorite); }
+function hasTop25(e) { return e.competitions[0].competitors.some(isRanked); }
 
 function isWithin24Hours(e) {
   const gameDate = new Date(e.competitions[0].date);
@@ -229,7 +254,7 @@ function getStatus(comp) {
   return { txt: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), cls: 'upcoming' };
 }
 
-function renderGame(ev, fav) {
+function renderGame(ev, fav, top25) {
   const comp = ev.competitions[0];
   const st = getStatus(comp);
   const teams = [...comp.competitors].sort((a,b) => a.homeAway === 'away' ? -1 : 1);
@@ -252,7 +277,12 @@ function renderGame(ev, fav) {
       <span class="score">${score}</span>
     </div>`;
   }).join('');
-  return `<div class="game ${fav?'favorite':''}">
+  
+  let cardClass = 'game';
+  if (fav) cardClass += ' favorite';
+  else if (top25) cardClass += ' top25';
+  
+  return `<div class="${cardClass}">
     <div class="status ${st.cls}">${st.txt}</div>
     <div class="matchup">${teamsHtml}</div>
   </div>`;
@@ -267,19 +297,46 @@ async function update() {
   let html = '';
   results.forEach(({ league, data }) => {
     if (!data?.events) return;
-    let games = data.events.filter(e => isSecGame(e) && isWithin24Hours(e));
-    if (!games.length) return;
-    const favGames = games.filter(hasFav);
-    const other = games.filter(e => !hasFav(e)).sort((a,b) => {
+    
+    // Filter to recent games only
+    let allGames = data.events.filter(isWithin24Hours);
+    if (!allGames.length) return;
+    
+    // Categorize games
+    const favGames = allGames.filter(hasFav);
+    const secGames = allGames.filter(e => isSecGame(e) && !hasFav(e));
+    const top25Games = allGames.filter(e => hasTop25(e) && !isSecGame(e) && !hasFav(e));
+    
+    // Skip league if no relevant games
+    if (!favGames.length && !secGames.length && !top25Games.length) return;
+    
+    // Sort helper: live first, then upcoming, then final
+    const sortGames = (games) => games.sort((a,b) => {
       const order = { 'in': 0, 'pre': 1, 'post': 2 };
       return (order[a.competitions[0].status.type.state]??3) - (order[b.competitions[0].status.type.state]??3);
     });
-    games = [...favGames, ...other];
+    
     html += `<div class="league-label">${league.name}</div>`;
-    html += games.map(e => renderGame(e, hasFav(e))).join('');
+    
+    // Aggies first
+    if (favGames.length) {
+      html += favGames.map(e => renderGame(e, true, hasTop25(e))).join('');
+    }
+    
+    // SEC games
+    if (secGames.length) {
+      if (favGames.length) html += `<div class="section-label">SEC</div>`;
+      html += sortGames(secGames).map(e => renderGame(e, false, hasTop25(e))).join('');
+    }
+    
+    // Top 25 (non-SEC)
+    if (top25Games.length) {
+      html += `<div class="section-label">Top 25</div>`;
+      html += sortGames(top25Games).map(e => renderGame(e, false, true)).join('');
+    }
   });
   
-  content.innerHTML = html || '<div class="no-games">No SEC games today</div>';
+  content.innerHTML = html || '<div class="no-games">No games today</div>';
   
   scrollPos = 0;
   scrollDir = 1;
