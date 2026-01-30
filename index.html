@@ -22,63 +22,66 @@
       --score-winner: #fbbf24;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
       font-family: 'Roboto Condensed', sans-serif;
       background: var(--bg-color);
       color: var(--text-primary);
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
     .widget {
-      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       display: flex;
       flex-direction: column;
-      padding: 8px;
+      padding: 4px;
     }
     .header {
       font-family: 'Oswald', sans-serif;
-      font-size: 1rem;
+      font-size: 0.75rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 6px 0;
+      letter-spacing: 0.03em;
+      padding: 3px 0;
       border-bottom: 2px solid var(--aggie-maroon);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       flex-shrink: 0;
     }
     .scroll-container {
       flex: 1;
-      overflow: hidden;
       position: relative;
+      overflow: hidden;
+      min-height: 0;
     }
     .scroll-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
-    .scroll-content.animating {
-      transition: transform 0.5s ease-in-out;
-    }
-    /* League label */
     .league-label {
       font-family: 'Oswald', sans-serif;
-      font-size: 0.7rem;
+      font-size: 0.55rem;
       font-weight: 500;
       text-transform: uppercase;
       color: var(--text-muted);
-      padding: 4px 0 2px;
+      padding: 2px 0 1px;
       border-bottom: 1px solid var(--card-border);
-      margin-top: 4px;
     }
-    .league-label:first-child { margin-top: 0; }
-    /* Game row */
     .game {
       display: flex;
       align-items: center;
       background: var(--card-bg);
-      border-radius: 6px;
-      padding: 6px 8px;
-      gap: 6px;
+      border-radius: 4px;
+      padding: 3px 4px;
+      gap: 4px;
       border: 1px solid var(--card-border);
     }
     .game.favorite {
@@ -86,13 +89,13 @@
       border-color: var(--aggie-maroon);
     }
     .status {
-      font-size: 0.55rem;
+      font-size: 0.45rem;
       font-weight: 700;
       text-transform: uppercase;
-      padding: 2px 5px;
-      border-radius: 3px;
+      padding: 1px 3px;
+      border-radius: 2px;
       white-space: nowrap;
-      min-width: 42px;
+      min-width: 32px;
       text-align: center;
     }
     .status.live { background: var(--accent-live); }
@@ -102,27 +105,27 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
       min-width: 0;
     }
     .team-line {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 3px;
     }
     .team-logo {
-      width: 18px;
-      height: 18px;
+      width: 12px;
+      height: 12px;
       object-fit: contain;
       flex-shrink: 0;
     }
     .rank {
-      font-size: 0.6rem;
+      font-size: 0.5rem;
       color: var(--score-winner);
     }
     .team-name {
       font-family: 'Oswald', sans-serif;
-      font-size: 0.8rem;
+      font-size: 0.6rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -134,16 +137,16 @@
     .team-line.is-fav .team-name { font-weight: 700; }
     .score {
       font-family: 'Oswald', sans-serif;
-      font-size: 0.85rem;
+      font-size: 0.6rem;
       font-weight: 700;
-      min-width: 24px;
+      min-width: 16px;
       text-align: right;
     }
     .no-games {
       text-align: center;
-      padding: 20px;
+      padding: 10px;
       color: var(--text-muted);
-      font-style: italic;
+      font-size: 0.55rem;
     }
     .loading {
       display: flex;
@@ -151,6 +154,7 @@
       justify-content: center;
       height: 100%;
       color: var(--text-muted);
+      font-size: 0.55rem;
     }
   </style>
 </head>
@@ -175,13 +179,18 @@ const CONFIG = {
     { name: 'Baseball', sport: 'baseball', league: 'college-baseball' },
   ],
   refreshInterval: 60000,
-  scrollPauseMs: 3000,
-  scrollStepMs: 50,
+  scrollPauseMs: 2000,
+  scrollPixelsPerStep: 1,
+  scrollIntervalMs: 30,
+  maxAgeHours: 24,
 };
 
 const content = document.getElementById('content');
 const container = document.getElementById('scrollContainer');
-let scrollPos = 0, scrollDir = 1, isPaused = false, pauseTimeout = null;
+let scrollPos = 0;
+let scrollDir = 1;
+let isPaused = true;
+let scrollInterval = null;
 
 function isFavorite(team) {
   const abbr = (team.team.abbreviation || '').toUpperCase();
@@ -197,6 +206,13 @@ function isSec(team) {
 
 function isSecGame(e) { return e.competitions[0].competitors.some(isSec); }
 function hasFav(e) { return e.competitions[0].competitors.some(isFavorite); }
+
+function isWithin24Hours(e) {
+  const gameDate = new Date(e.competitions[0].date);
+  const now = new Date();
+  const hoursDiff = (now - gameDate) / (1000 * 60 * 60);
+  return hoursDiff < CONFIG.maxAgeHours && hoursDiff > -48;
+}
 
 async function fetchScores(sport, league) {
   try {
@@ -251,7 +267,7 @@ async function update() {
   let html = '';
   results.forEach(({ league, data }) => {
     if (!data?.events) return;
-    let games = data.events.filter(isSecGame);
+    let games = data.events.filter(e => isSecGame(e) && isWithin24Hours(e));
     if (!games.length) return;
     const favGames = games.filter(hasFav);
     const other = games.filter(e => !hasFav(e)).sort((a,b) => {
@@ -264,40 +280,51 @@ async function update() {
   });
   
   content.innerHTML = html || '<div class="no-games">No SEC games today</div>';
+  
   scrollPos = 0;
+  scrollDir = 1;
   content.style.transform = 'translateY(0)';
+  startScrolling();
 }
 
-function autoScroll() {
+function startScrolling() {
+  if (scrollInterval) clearInterval(scrollInterval);
+  
+  isPaused = true;
+  setTimeout(() => {
+    isPaused = false;
+    scrollInterval = setInterval(doScroll, CONFIG.scrollIntervalMs);
+  }, CONFIG.scrollPauseMs);
+}
+
+function doScroll() {
   if (isPaused) return;
-  const contentH = content.scrollHeight;
-  const containerH = container.clientHeight;
+  
+  const contentH = content.offsetHeight;
+  const containerH = container.offsetHeight;
+  
   if (contentH <= containerH) return;
   
   const maxScroll = contentH - containerH;
-  scrollPos += scrollDir * 1;
+  scrollPos += scrollDir * CONFIG.scrollPixelsPerStep;
   
   if (scrollPos >= maxScroll) {
     scrollPos = maxScroll;
     scrollDir = -1;
-    pause();
+    isPaused = true;
+    setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
   } else if (scrollPos <= 0) {
     scrollPos = 0;
     scrollDir = 1;
-    pause();
+    isPaused = true;
+    setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
   }
+  
   content.style.transform = `translateY(-${scrollPos}px)`;
-}
-
-function pause() {
-  isPaused = true;
-  clearTimeout(pauseTimeout);
-  pauseTimeout = setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
 }
 
 update();
 setInterval(update, CONFIG.refreshInterval);
-setInterval(autoScroll, CONFIG.scrollStepMs);
 </script>
 </body>
 </html>
