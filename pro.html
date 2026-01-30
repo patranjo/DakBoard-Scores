@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>College Sports - Aggies & SEC</title>
+  <title>Pro Sports - Houston Teams</title>
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,14 +20,15 @@
       --card-border: rgba(255, 255, 255, 0.1);
       --card-radius: 12px;
       
-      /* Texas A&M Colors */
-      --aggie-maroon: #500000;
-      --aggie-white: #ffffff;
+      /* Houston Colors (Texans: Navy/Red, Astros: Navy/Orange) */
+      --houston-navy: #03202f;
+      --houston-red: #a71930;
+      --houston-orange: #eb6e1f;
       
       /* Favorite team highlight */
-      --favorite-bg: rgba(80, 0, 0, 0.85);
-      --favorite-border: #500000;
-      --favorite-glow: rgba(80, 0, 0, 0.5);
+      --favorite-bg: rgba(3, 32, 47, 0.9);
+      --favorite-border: var(--houston-orange);
+      --favorite-glow: rgba(235, 110, 31, 0.4);
       
       /* Text colors */
       --text-primary: #ffffff;
@@ -73,7 +74,7 @@
       align-items: center;
       gap: 12px;
       padding-bottom: 8px;
-      border-bottom: 3px solid var(--aggie-maroon);
+      border-bottom: 3px solid var(--houston-orange);
     }
 
     .section-title {
@@ -82,10 +83,6 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-    }
-
-    .section-icon {
-      font-size: 1.4rem;
     }
 
     /* League Section */
@@ -104,8 +101,8 @@
     }
 
     .league-logo {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       object-fit: contain;
     }
 
@@ -116,6 +113,10 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-secondary);
+    }
+
+    .section-icon {
+      font-size: 1.4rem;
     }
 
     /* Games Grid */
@@ -141,18 +142,18 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    /* Favorite Team Card */
-    .game-card.favorite-team {
+    /* Houston Team Card */
+    .game-card.houston-team {
       background: var(--favorite-bg);
       border: 2px solid var(--favorite-border);
       box-shadow: 0 0 20px var(--favorite-glow);
     }
 
-    .game-card.favorite-team .team-row.is-favorite .team-name {
+    .game-card.houston-team .team-row.is-houston .team-name {
       font-weight: 700;
     }
 
-    .favorite-badge {
+    .houston-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -162,8 +163,8 @@
       letter-spacing: 0.1em;
       padding: 3px 8px;
       border-radius: 4px;
-      background: var(--aggie-maroon);
-      color: var(--aggie-white);
+      background: linear-gradient(135deg, var(--houston-navy), var(--houston-orange));
+      color: white;
       margin-left: 8px;
     }
 
@@ -230,8 +231,8 @@
     }
 
     .team-logo {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
       flex-shrink: 0;
     }
@@ -250,7 +251,7 @@
 
     .team-name {
       font-family: 'Oswald', sans-serif;
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -262,17 +263,11 @@
       color: var(--text-muted);
     }
 
-    .team-rank {
-      font-size: 0.75rem;
-      color: var(--score-winner);
-      margin-right: 4px;
-    }
-
     .team-score {
       font-family: 'Oswald', sans-serif;
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 700;
-      min-width: 50px;
+      min-width: 55px;
       text-align: right;
     }
 
@@ -315,7 +310,7 @@
       width: 24px;
       height: 24px;
       border: 3px solid var(--card-border);
-      border-top-color: var(--aggie-maroon);
+      border-top-color: var(--houston-orange);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-right: 12px;
@@ -336,7 +331,7 @@
     /* Divider */
     .section-divider {
       height: 2px;
-      background: linear-gradient(90deg, transparent, var(--aggie-maroon), transparent);
+      background: linear-gradient(90deg, transparent, var(--houston-orange), transparent);
       margin: 8px 0;
     }
   </style>
@@ -346,7 +341,7 @@
 <div class="widget-container" id="widget">
   <div class="loading">
     <div class="loading-spinner"></div>
-    <span>Loading Aggie scores...</span>
+    <span>Loading scores...</span>
   </div>
 </div>
 
@@ -356,32 +351,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
-  // Your favorite team (will appear at top with special styling)
-  favoriteTeam: {
-    name: 'Texas A&M',
-    abbreviations: ['TAMU', 'TA&M', 'TEX A&M', 'TEXAS A&M'],
-    id: null // Will also match by name
-  },
-  
-  // SEC team abbreviations for filtering
-  secTeams: [
-    'TAMU', 'TA&M', 'ALA', 'BAMA', 'ARK', 'AUB', 'FLA', 'UGA', 'GA',
-    'UK', 'KENT', 'LSU', 'MISS', 'OLE MISS', 'MSST', 'MISS ST', 'MIZ', 'MIZZ',
-    'OKLA', 'OU', 'SCAR', 'SC', 'TENN', 'UT', 'TEX', 'TEXAS', 'VAN', 'VANDY'
-  ],
-  
-  // Full SEC team names for matching
-  secTeamNames: [
-    'Texas A&M', 'Alabama', 'Arkansas', 'Auburn', 'Florida', 'Georgia',
-    'Kentucky', 'LSU', 'Ole Miss', 'Mississippi State', 'Missouri',
-    'Oklahoma', 'South Carolina', 'Tennessee', 'Texas', 'Vanderbilt'
+  // Houston teams to highlight
+  houstonTeams: [
+    { name: 'Houston Texans', abbreviations: ['HOU'], sport: 'football' },
+    { name: 'Houston Astros', abbreviations: ['HOU'], sport: 'baseball' },
   ],
   
   // Leagues to display
   leagues: [
-    { name: 'College Football', sport: 'football', league: 'college-football', icon: '🏈' },
-    { name: 'College Baseball', sport: 'baseball', league: 'college-baseball', icon: '⚾' },
-    { name: "Men's Basketball", sport: 'basketball', league: 'mens-college-basketball', icon: '🏀' },
+    { name: 'NFL', sport: 'football', league: 'nfl', icon: '🏈' },
+    { name: 'MLB', sport: 'baseball', league: 'mlb', icon: '⚾' },
   ],
   
   // Refresh interval (ms)
@@ -397,7 +376,7 @@ const CONFIG = {
   showGameInfo: true,
   
   // Hide leagues with no games
-  hideEmptyLeagues: true,
+  hideEmptyLeagues: false,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -419,46 +398,23 @@ async function fetchScores(sport, league) {
   }
 }
 
-function isFavoriteTeam(team) {
+function isHoustonTeam(team, sport) {
   const name = (team.team.displayName || '').toUpperCase();
   const abbr = (team.team.abbreviation || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
+  const location = (team.team.location || '').toUpperCase();
   
-  const favName = CONFIG.favoriteTeam.name.toUpperCase();
-  const favAbbrs = CONFIG.favoriteTeam.abbreviations.map(a => a.toUpperCase());
+  // Check if it's a Houston team for this sport
+  const houstonTeam = CONFIG.houstonTeams.find(ht => ht.sport === sport);
+  if (!houstonTeam) return false;
   
-  return name.includes(favName) || 
-         shortName.includes(favName) ||
-         favAbbrs.includes(abbr) ||
-         name.includes('TEXAS A&M') ||
-         name.includes('TEXAS A & M');
+  return location.includes('HOUSTON') || 
+         name.includes('HOUSTON') ||
+         (abbr === 'HOU');
 }
 
-function isSecTeam(team) {
-  const name = (team.team.displayName || '').toUpperCase();
-  const abbr = (team.team.abbreviation || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
-  
-  // Check abbreviations
-  if (CONFIG.secTeams.some(sec => abbr === sec.toUpperCase())) return true;
-  
-  // Check full names
-  if (CONFIG.secTeamNames.some(sec => name.includes(sec.toUpperCase()))) return true;
-  
-  // Check conference info if available
-  const confName = team.team.conferenceId;
-  
-  return false;
-}
-
-function isSecGame(event) {
+function hasHoustonTeam(event, sport) {
   const competitors = event.competitions[0].competitors;
-  return competitors.some(c => isSecTeam(c));
-}
-
-function hasFavoriteTeam(event) {
-  const competitors = event.competitions[0].competitors;
-  return competitors.some(c => isFavoriteTeam(c));
+  return competitors.some(c => isHoustonTeam(c, sport));
 }
 
 function getGameStatus(competition) {
@@ -468,9 +424,8 @@ function getGameStatus(competition) {
   if (type.completed) {
     return { text: 'Final', class: 'final' };
   } else if (type.state === 'in') {
-    const detail = status.displayClock 
-      ? `${status.period}${getOrdinalSuffix(status.period)} ${status.displayClock}`
-      : status.type.shortDetail;
+    // For baseball, show inning info
+    const detail = status.type.shortDetail || status.type.detail;
     return { text: detail, class: 'live', isLive: true };
   } else {
     const date = new Date(competition.date);
@@ -483,12 +438,6 @@ function getGameStatus(competition) {
   }
 }
 
-function getOrdinalSuffix(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
-
 function getTeamRecord(competitor) {
   if (!CONFIG.showRecords) return '';
   const records = competitor.records;
@@ -497,13 +446,7 @@ function getTeamRecord(competitor) {
   return overall ? overall.summary : '';
 }
 
-function getTeamRank(competitor) {
-  const rank = competitor.curatedRank?.current;
-  if (rank && rank <= 25) return rank;
-  return null;
-}
-
-function renderGame(event, isFavorite) {
+function renderGame(event, isHouston, sport) {
   const competition = event.competitions[0];
   const status = getGameStatus(competition);
   const competitors = competition.competitors;
@@ -527,20 +470,18 @@ function renderGame(event, isFavorite) {
 
   const teamsHtml = sortedTeams.map(team => {
     const isWinner = team.id === winnerId;
-    const isFav = isFavoriteTeam(team);
+    const isHou = isHoustonTeam(team, sport);
     const record = getTeamRecord(team);
-    const rank = getTeamRank(team);
     const logo = team.team.logo || '';
     const score = competition.status.type.state === 'pre' ? '' : team.score;
     
     return `
-      <div class="team-row ${isWinner ? 'winner' : ''} ${isFav ? 'is-favorite' : ''}">
+      <div class="team-row ${isWinner ? 'winner' : ''} ${isHou ? 'is-houston' : ''}">
         <img class="team-logo" src="${logo}" alt="${team.team.abbreviation}" onerror="this.style.display='none'">
         <div class="team-info">
           <div class="team-name-row">
-            ${rank ? `<span class="team-rank">#${rank}</span>` : ''}
-            <span class="team-name">${team.team.shortDisplayName || team.team.displayName}</span>
-            ${isFav ? '<span class="favorite-badge">👍 GIG \'EM</span>' : ''}
+            <span class="team-name">${team.team.displayName || team.team.shortDisplayName}</span>
+            ${isHou ? '<span class="houston-badge">⭐ HTX</span>' : ''}
           </div>
           ${record ? `<span class="team-record">${record}</span>` : ''}
         </div>
@@ -566,7 +507,7 @@ function renderGame(event, isFavorite) {
   }
 
   return `
-    <div class="game-card ${isFavorite ? 'favorite-team' : ''}">
+    <div class="game-card ${isHouston ? 'houston-team' : ''}">
       <div class="game-status ${status.class}">
         ${status.isLive ? '<span class="live-dot"></span>' : ''}
         ${status.text}
@@ -593,25 +534,11 @@ function renderLeague(leagueConfig, data) {
     `;
   }
 
-  // Filter to SEC games only
-  let secGames = data.events.filter(e => isSecGame(e));
+  let events = data.events;
   
-  if (secGames.length === 0) {
-    if (CONFIG.hideEmptyLeagues) return '';
-    return `
-      <div class="league-section">
-        <div class="league-header">
-          <span class="section-icon">${leagueConfig.icon}</span>
-          <span class="league-name">${leagueConfig.name}</span>
-        </div>
-        <div class="no-games">No SEC games scheduled</div>
-      </div>
-    `;
-  }
-
-  // Separate favorite team games and other SEC games
-  const favoriteGames = secGames.filter(e => hasFavoriteTeam(e));
-  const otherGames = secGames.filter(e => !hasFavoriteTeam(e));
+  // Separate Houston games and other games
+  const houstonGames = events.filter(e => hasHoustonTeam(e, leagueConfig.sport));
+  const otherGames = events.filter(e => !hasHoustonTeam(e, leagueConfig.sport));
   
   // Sort other games: live first, then upcoming, then final
   otherGames.sort((a, b) => {
@@ -621,23 +548,25 @@ function renderLeague(leagueConfig, data) {
     return (order[aState] ?? 3) - (order[bState] ?? 3);
   });
 
-  // Combine: favorites first, then others
-  let allGames = [...favoriteGames, ...otherGames];
+  // Combine: Houston first, then others
+  let allGames = [...houstonGames, ...otherGames];
   
   // Limit if configured
   if (CONFIG.maxGamesPerLeague) {
     allGames = allGames.slice(0, CONFIG.maxGamesPerLeague);
   }
 
+  const leagueLogo = data.leagues?.[0]?.logos?.[0]?.href || '';
+
   const gamesHtml = allGames.map(event => {
-    const isFavorite = hasFavoriteTeam(event);
-    return renderGame(event, isFavorite);
+    const isHouston = hasHoustonTeam(event, leagueConfig.sport);
+    return renderGame(event, isHouston, leagueConfig.sport);
   }).join('');
 
   return `
     <div class="league-section">
       <div class="league-header">
-        <span class="section-icon">${leagueConfig.icon}</span>
+        ${leagueLogo ? `<img class="league-logo" src="${leagueLogo}" alt="${leagueConfig.name}">` : `<span class="section-icon">${leagueConfig.icon}</span>`}
         <span class="league-name">${leagueConfig.name}</span>
       </div>
       <div class="games-grid">
@@ -663,16 +592,16 @@ async function updateWidget() {
   if (sectionsHtml) {
     widget.innerHTML = `
       <div class="section-header">
-        <span class="section-title">🎓 Aggies & SEC Scores</span>
+        <span class="section-title">🏟️ Pro Sports</span>
       </div>
       ${sectionsHtml}
     `;
   } else {
     widget.innerHTML = `
       <div class="section-header">
-        <span class="section-title">🎓 Aggies & SEC Scores</span>
+        <span class="section-title">🏟️ Pro Sports</span>
       </div>
-      <div class="no-games">No SEC games scheduled for today</div>
+      <div class="no-games">No games scheduled for today</div>
     `;
   }
 }
