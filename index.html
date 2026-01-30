@@ -4,685 +4,300 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>College Sports - Aggies & SEC</title>
-  
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Background: 'transparent' for Dakboard overlay, or use a color */
       --bg-color: transparent;
-      
-      /* Card styling */
-      --card-bg: rgba(0, 0, 0, 0.75);
+      --card-bg: rgba(0, 0, 0, 0.7);
       --card-border: rgba(255, 255, 255, 0.1);
-      --card-radius: 12px;
-      
-      /* Texas A&M Colors */
       --aggie-maroon: #500000;
-      --aggie-white: #ffffff;
-      
-      /* Favorite team highlight */
       --favorite-bg: rgba(80, 0, 0, 0.85);
-      --favorite-border: #500000;
-      --favorite-glow: rgba(80, 0, 0, 0.5);
-      
-      /* Text colors */
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --text-muted: rgba(255, 255, 255, 0.5);
-      
-      /* Accent colors */
+      --text-primary: #fff;
+      --text-muted: rgba(255,255,255,0.5);
       --accent-live: #ef4444;
       --accent-final: #22c55e;
       --accent-upcoming: #3b82f6;
-      
-      /* Score styling */
       --score-winner: #fbbf24;
-      
-      /* Spacing */
-      --widget-padding: 16px;
-      --card-gap: 12px;
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Roboto Condensed', sans-serif;
       background: var(--bg-color);
       color: var(--text-primary);
-      min-height: 100vh;
-      padding: var(--widget-padding);
+      height: 100vh;
+      overflow: hidden;
     }
-
-    .widget-container {
+    .widget {
+      height: 100%;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      padding: 8px;
     }
-
-    /* Section Header */
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 8px;
-      border-bottom: 3px solid var(--aggie-maroon);
-    }
-
-    .section-title {
-      font-family: 'Oswald', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .section-icon {
-      font-size: 1.4rem;
-    }
-
-    /* League Section */
-    .league-section {
-      display: flex;
-      flex-direction: column;
-      gap: var(--card-gap);
-    }
-
-    .league-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--card-border);
-    }
-
-    .league-logo {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
-    .league-name {
+    .header {
       font-family: 'Oswald', sans-serif;
       font-size: 1rem;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-secondary);
-    }
-
-    /* Games Grid */
-    .games-grid {
-      display: flex;
-      flex-direction: column;
-      gap: var(--card-gap);
-    }
-
-    /* Game Card */
-    .game-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--card-radius);
-      padding: 14px 16px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .game-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Favorite Team Card */
-    .game-card.favorite-team {
-      background: var(--favorite-bg);
-      border: 2px solid var(--favorite-border);
-      box-shadow: 0 0 20px var(--favorite-glow);
-    }
-
-    .game-card.favorite-team .team-row.is-favorite .team-name {
-      font-weight: 700;
-    }
-
-    .favorite-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: var(--aggie-maroon);
-      color: var(--aggie-white);
-      margin-left: 8px;
-    }
-
-    /* Game Status Badge */
-    .game-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 4px 10px;
-      border-radius: 20px;
-      margin-bottom: 10px;
-    }
-
-    .game-status.live {
-      background: var(--accent-live);
-      color: white;
-      animation: pulse 2s infinite;
-    }
-
-    .game-status.final {
-      background: rgba(34, 197, 94, 0.2);
-      color: var(--accent-final);
-    }
-
-    .game-status.upcoming {
-      background: rgba(59, 130, 246, 0.2);
-      color: var(--accent-upcoming);
-    }
-
-    .live-dot {
-      width: 6px;
-      height: 6px;
-      background: white;
-      border-radius: 50%;
-      animation: blink 1s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.8; }
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* Teams Container */
-    .teams-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    /* Team Row */
-    .team-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .team-logo {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
+      padding: 6px 0;
+      border-bottom: 2px solid var(--aggie-maroon);
+      margin-bottom: 8px;
       flex-shrink: 0;
     }
-
-    .team-info {
+    .scroll-container {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .scroll-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .scroll-content.animating {
+      transition: transform 0.5s ease-in-out;
+    }
+    /* League label */
+    .league-label {
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 4px 0 2px;
+      border-bottom: 1px solid var(--card-border);
+      margin-top: 4px;
+    }
+    .league-label:first-child { margin-top: 0; }
+    /* Game row */
+    .game {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      border-radius: 6px;
+      padding: 6px 8px;
+      gap: 6px;
+      border: 1px solid var(--card-border);
+    }
+    .game.favorite {
+      background: var(--favorite-bg);
+      border-color: var(--aggie-maroon);
+    }
+    .status {
+      font-size: 0.55rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+      min-width: 42px;
+      text-align: center;
+    }
+    .status.live { background: var(--accent-live); }
+    .status.final { background: rgba(34,197,94,0.25); color: var(--accent-final); }
+    .status.upcoming { background: rgba(59,130,246,0.25); color: var(--accent-upcoming); }
+    .matchup {
       flex: 1;
       display: flex;
       flex-direction: column;
+      gap: 2px;
       min-width: 0;
     }
-
-    .team-name-row {
+    .team-line {
       display: flex;
       align-items: center;
+      gap: 5px;
     }
-
+    .team-logo {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .rank {
+      font-size: 0.6rem;
+      color: var(--score-winner);
+    }
     .team-name {
       font-family: 'Oswald', sans-serif;
-      font-size: 1rem;
+      font-size: 0.8rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex: 1;
     }
-
-    .team-record {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .team-rank {
-      font-size: 0.75rem;
-      color: var(--score-winner);
-      margin-right: 4px;
-    }
-
-    .team-score {
+    .team-line.winner .team-name,
+    .team-line.winner .score { color: var(--score-winner); }
+    .team-line.is-fav .team-name { font-weight: 700; }
+    .score {
       font-family: 'Oswald', sans-serif;
-      font-size: 1.5rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      min-width: 50px;
+      min-width: 24px;
       text-align: right;
     }
-
-    .team-row.winner .team-score {
-      color: var(--score-winner);
-    }
-
-    .team-row.winner .team-name {
-      color: var(--score-winner);
-    }
-
-    /* Game Info Footer */
-    .game-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--card-border);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .game-detail {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Loading State */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      color: var(--text-secondary);
-    }
-
-    .loading-spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid var(--card-border);
-      border-top-color: var(--aggie-maroon);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 12px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* No Games Message */
     .no-games {
       text-align: center;
       padding: 20px;
       color: var(--text-muted);
       font-style: italic;
     }
-
-    /* Divider */
-    .section-divider {
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--aggie-maroon), transparent);
-      margin: 8px 0;
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-
-<div class="widget-container" id="widget">
-  <div class="loading">
-    <div class="loading-spinner"></div>
-    <span>Loading Aggie scores...</span>
+<div class="widget">
+  <div class="header">🎓 Aggies & SEC</div>
+  <div class="scroll-container" id="scrollContainer">
+    <div class="scroll-content" id="content">
+      <div class="loading">Loading...</div>
+    </div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURATION
-// ═══════════════════════════════════════════════════════════════════════════
-
 const CONFIG = {
-  // Your favorite team (will appear at top with special styling)
-  favoriteTeam: {
-    name: 'Texas A&M',
-    abbreviations: ['TAMU', 'TA&M', 'TEX A&M', 'TEXAS A&M'],
-    id: null // Will also match by name
-  },
-  
-  // SEC team abbreviations for filtering
-  secTeams: [
-    'TAMU', 'TA&M', 'ALA', 'BAMA', 'ARK', 'AUB', 'FLA', 'UGA', 'GA',
-    'UK', 'KENT', 'LSU', 'MISS', 'OLE MISS', 'MSST', 'MISS ST', 'MIZ', 'MIZZ',
-    'OKLA', 'OU', 'SCAR', 'SC', 'TENN', 'UT', 'TEX', 'TEXAS', 'VAN', 'VANDY'
-  ],
-  
-  // Full SEC team names for matching
-  secTeamNames: [
-    'Texas A&M', 'Alabama', 'Arkansas', 'Auburn', 'Florida', 'Georgia',
-    'Kentucky', 'LSU', 'Ole Miss', 'Mississippi State', 'Missouri',
-    'Oklahoma', 'South Carolina', 'Tennessee', 'Texas', 'Vanderbilt'
-  ],
-  
-  // Leagues to display
+  favoriteTeam: ['TAMU', 'TA&M', 'TEXAS A&M'],
+  secTeams: ['TAMU','TA&M','ALA','BAMA','ARK','AUB','FLA','UGA','GA','UK','LSU','MISS','OLE MISS','MSST','MIZ','OKLA','OU','SCAR','SC','TENN','TEX','TEXAS','VAN','VANDY'],
+  secNames: ['Texas A&M','Alabama','Arkansas','Auburn','Florida','Georgia','Kentucky','LSU','Ole Miss','Mississippi State','Missouri','Oklahoma','South Carolina','Tennessee','Texas','Vanderbilt'],
   leagues: [
-    { name: 'College Football', sport: 'football', league: 'college-football', icon: '🏈' },
-    { name: 'College Baseball', sport: 'baseball', league: 'college-baseball', icon: '⚾' },
-    { name: "Men's Basketball", sport: 'basketball', league: 'mens-college-basketball', icon: '🏀' },
+    { name: 'CFB', sport: 'football', league: 'college-football' },
+    { name: 'CBB', sport: 'basketball', league: 'mens-college-basketball' },
+    { name: 'Baseball', sport: 'baseball', league: 'college-baseball' },
   ],
-  
-  // Refresh interval (ms)
   refreshInterval: 60000,
-  
-  // Max games per league (null for no limit)
-  maxGamesPerLeague: 8,
-  
-  // Show team records
-  showRecords: true,
-  
-  // Show venue/broadcast
-  showGameInfo: true,
-  
-  // Hide leagues with no games
-  hideEmptyLeagues: true,
+  scrollPauseMs: 3000,
+  scrollStepMs: 50,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Widget Code
-// ═══════════════════════════════════════════════════════════════════════════
+const content = document.getElementById('content');
+const container = document.getElementById('scrollContainer');
+let scrollPos = 0, scrollDir = 1, isPaused = false, pauseTimeout = null;
 
-const widget = document.getElementById('widget');
+function isFavorite(team) {
+  const abbr = (team.team.abbreviation || '').toUpperCase();
+  const name = (team.team.displayName || '').toUpperCase();
+  return CONFIG.favoriteTeam.some(f => abbr === f || name.includes(f));
+}
+
+function isSec(team) {
+  const abbr = (team.team.abbreviation || '').toUpperCase();
+  const name = (team.team.displayName || '').toUpperCase();
+  return CONFIG.secTeams.includes(abbr) || CONFIG.secNames.some(n => name.includes(n.toUpperCase()));
+}
+
+function isSecGame(e) { return e.competitions[0].competitors.some(isSec); }
+function hasFav(e) { return e.competitions[0].competitors.some(isFavorite); }
 
 async function fetchScores(sport, league) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`;
-  
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error(`Error fetching ${league}:`, error);
-    return null;
-  }
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+    return r.ok ? r.json() : null;
+  } catch { return null; }
 }
 
-function isFavoriteTeam(team) {
-  const name = (team.team.displayName || '').toUpperCase();
-  const abbr = (team.team.abbreviation || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
-  
-  const favName = CONFIG.favoriteTeam.name.toUpperCase();
-  const favAbbrs = CONFIG.favoriteTeam.abbreviations.map(a => a.toUpperCase());
-  
-  return name.includes(favName) || 
-         shortName.includes(favName) ||
-         favAbbrs.includes(abbr) ||
-         name.includes('TEXAS A&M') ||
-         name.includes('TEXAS A & M');
+function getStatus(comp) {
+  const t = comp.status.type;
+  if (t.completed) return { txt: 'Final', cls: 'final' };
+  if (t.state === 'in') return { txt: t.shortDetail || 'Live', cls: 'live' };
+  const d = new Date(comp.date);
+  return { txt: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), cls: 'upcoming' };
 }
 
-function isSecTeam(team) {
-  const name = (team.team.displayName || '').toUpperCase();
-  const abbr = (team.team.abbreviation || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
-  
-  // Check abbreviations
-  if (CONFIG.secTeams.some(sec => abbr === sec.toUpperCase())) return true;
-  
-  // Check full names
-  if (CONFIG.secTeamNames.some(sec => name.includes(sec.toUpperCase()))) return true;
-  
-  // Check conference info if available
-  const confName = team.team.conferenceId;
-  
-  return false;
-}
-
-function isSecGame(event) {
-  const competitors = event.competitions[0].competitors;
-  return competitors.some(c => isSecTeam(c));
-}
-
-function hasFavoriteTeam(event) {
-  const competitors = event.competitions[0].competitors;
-  return competitors.some(c => isFavoriteTeam(c));
-}
-
-function getGameStatus(competition) {
-  const status = competition.status;
-  const type = status.type;
-  
-  if (type.completed) {
-    return { text: 'Final', class: 'final' };
-  } else if (type.state === 'in') {
-    const detail = status.displayClock 
-      ? `${status.period}${getOrdinalSuffix(status.period)} ${status.displayClock}`
-      : status.type.shortDetail;
-    return { text: detail, class: 'live', isLive: true };
-  } else {
-    const date = new Date(competition.date);
-    const timeStr = date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
-    return { text: timeStr, class: 'upcoming' };
-  }
-}
-
-function getOrdinalSuffix(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
-
-function getTeamRecord(competitor) {
-  if (!CONFIG.showRecords) return '';
-  const records = competitor.records;
-  if (!records || records.length === 0) return '';
-  const overall = records.find(r => r.type === 'total' || r.name === 'overall') || records[0];
-  return overall ? overall.summary : '';
-}
-
-function getTeamRank(competitor) {
-  const rank = competitor.curatedRank?.current;
-  if (rank && rank <= 25) return rank;
-  return null;
-}
-
-function renderGame(event, isFavorite) {
-  const competition = event.competitions[0];
-  const status = getGameStatus(competition);
-  const competitors = competition.competitors;
-  
-  // Sort so away team is first (top), home team second (bottom)
-  const sortedTeams = [...competitors].sort((a, b) => {
-    if (a.homeAway === 'away') return -1;
-    return 1;
-  });
-
-  const isCompleted = competition.status.type.completed;
-  
-  // Determine winner
+function renderGame(ev, fav) {
+  const comp = ev.competitions[0];
+  const st = getStatus(comp);
+  const teams = [...comp.competitors].sort((a,b) => a.homeAway === 'away' ? -1 : 1);
+  const done = comp.status.type.completed;
   let winnerId = null;
-  if (isCompleted) {
-    const scores = sortedTeams.map(t => parseInt(t.score) || 0);
-    if (scores[0] !== scores[1]) {
-      winnerId = scores[0] > scores[1] ? sortedTeams[0].id : sortedTeams[1].id;
-    }
+  if (done) {
+    const s = teams.map(t => parseInt(t.score)||0);
+    if (s[0] !== s[1]) winnerId = s[0] > s[1] ? teams[0].id : teams[1].id;
   }
-
-  const teamsHtml = sortedTeams.map(team => {
-    const isWinner = team.id === winnerId;
-    const isFav = isFavoriteTeam(team);
-    const record = getTeamRecord(team);
-    const rank = getTeamRank(team);
-    const logo = team.team.logo || '';
-    const score = competition.status.type.state === 'pre' ? '' : team.score;
-    
-    return `
-      <div class="team-row ${isWinner ? 'winner' : ''} ${isFav ? 'is-favorite' : ''}">
-        <img class="team-logo" src="${logo}" alt="${team.team.abbreviation}" onerror="this.style.display='none'">
-        <div class="team-info">
-          <div class="team-name-row">
-            ${rank ? `<span class="team-rank">#${rank}</span>` : ''}
-            <span class="team-name">${team.team.shortDisplayName || team.team.displayName}</span>
-            ${isFav ? '<span class="favorite-badge">👍 GIG \'EM</span>' : ''}
-          </div>
-          ${record ? `<span class="team-record">${record}</span>` : ''}
-        </div>
-        <span class="team-score">${score}</span>
-      </div>
-    `;
+  const teamsHtml = teams.map(t => {
+    const w = t.id === winnerId;
+    const f = isFavorite(t);
+    const rank = t.curatedRank?.current;
+    const logo = t.team.logo || '';
+    const score = comp.status.type.state === 'pre' ? '' : t.score;
+    return `<div class="team-line ${w?'winner':''} ${f?'is-fav':''}">
+      <img class="team-logo" src="${logo}" onerror="this.style.display='none'">
+      ${rank && rank <= 25 ? `<span class="rank">#${rank}</span>` : ''}
+      <span class="team-name">${t.team.shortDisplayName || t.team.displayName}</span>
+      <span class="score">${score}</span>
+    </div>`;
   }).join('');
-
-  // Game info
-  let gameInfoHtml = '';
-  if (CONFIG.showGameInfo) {
-    const venue = competition.venue?.fullName || '';
-    const broadcast = competition.broadcasts?.[0]?.names?.[0] || '';
-    
-    if (venue || broadcast) {
-      gameInfoHtml = `
-        <div class="game-info">
-          ${venue ? `<span class="game-detail">${venue}</span>` : '<span></span>'}
-          ${broadcast ? `<span class="game-detail">${broadcast}</span>` : ''}
-        </div>
-      `;
-    }
-  }
-
-  return `
-    <div class="game-card ${isFavorite ? 'favorite-team' : ''}">
-      <div class="game-status ${status.class}">
-        ${status.isLive ? '<span class="live-dot"></span>' : ''}
-        ${status.text}
-      </div>
-      <div class="teams-container">
-        ${teamsHtml}
-      </div>
-      ${gameInfoHtml}
-    </div>
-  `;
+  return `<div class="game ${fav?'favorite':''}">
+    <div class="status ${st.cls}">${st.txt}</div>
+    <div class="matchup">${teamsHtml}</div>
+  </div>`;
 }
 
-function renderLeague(leagueConfig, data) {
-  if (!data || !data.events || data.events.length === 0) {
-    if (CONFIG.hideEmptyLeagues) return '';
-    return `
-      <div class="league-section">
-        <div class="league-header">
-          <span class="section-icon">${leagueConfig.icon}</span>
-          <span class="league-name">${leagueConfig.name}</span>
-        </div>
-        <div class="no-games">No games scheduled</div>
-      </div>
-    `;
-  }
-
-  // Filter to SEC games only
-  let secGames = data.events.filter(e => isSecGame(e));
+async function update() {
+  const results = await Promise.all(CONFIG.leagues.map(async l => {
+    const data = await fetchScores(l.sport, l.league);
+    return { league: l, data };
+  }));
   
-  if (secGames.length === 0) {
-    if (CONFIG.hideEmptyLeagues) return '';
-    return `
-      <div class="league-section">
-        <div class="league-header">
-          <span class="section-icon">${leagueConfig.icon}</span>
-          <span class="league-name">${leagueConfig.name}</span>
-        </div>
-        <div class="no-games">No SEC games scheduled</div>
-      </div>
-    `;
-  }
-
-  // Separate favorite team games and other SEC games
-  const favoriteGames = secGames.filter(e => hasFavoriteTeam(e));
-  const otherGames = secGames.filter(e => !hasFavoriteTeam(e));
-  
-  // Sort other games: live first, then upcoming, then final
-  otherGames.sort((a, b) => {
-    const aState = a.competitions[0].status.type.state;
-    const bState = b.competitions[0].status.type.state;
-    const order = { 'in': 0, 'pre': 1, 'post': 2 };
-    return (order[aState] ?? 3) - (order[bState] ?? 3);
+  let html = '';
+  results.forEach(({ league, data }) => {
+    if (!data?.events) return;
+    let games = data.events.filter(isSecGame);
+    if (!games.length) return;
+    const favGames = games.filter(hasFav);
+    const other = games.filter(e => !hasFav(e)).sort((a,b) => {
+      const order = { 'in': 0, 'pre': 1, 'post': 2 };
+      return (order[a.competitions[0].status.type.state]??3) - (order[b.competitions[0].status.type.state]??3);
+    });
+    games = [...favGames, ...other];
+    html += `<div class="league-label">${league.name}</div>`;
+    html += games.map(e => renderGame(e, hasFav(e))).join('');
   });
-
-  // Combine: favorites first, then others
-  let allGames = [...favoriteGames, ...otherGames];
   
-  // Limit if configured
-  if (CONFIG.maxGamesPerLeague) {
-    allGames = allGames.slice(0, CONFIG.maxGamesPerLeague);
-  }
-
-  const gamesHtml = allGames.map(event => {
-    const isFavorite = hasFavoriteTeam(event);
-    return renderGame(event, isFavorite);
-  }).join('');
-
-  return `
-    <div class="league-section">
-      <div class="league-header">
-        <span class="section-icon">${leagueConfig.icon}</span>
-        <span class="league-name">${leagueConfig.name}</span>
-      </div>
-      <div class="games-grid">
-        ${gamesHtml}
-      </div>
-    </div>
-  `;
+  content.innerHTML = html || '<div class="no-games">No SEC games today</div>';
+  scrollPos = 0;
+  content.style.transform = 'translateY(0)';
 }
 
-async function updateWidget() {
-  const results = await Promise.all(
-    CONFIG.leagues.map(async league => {
-      const data = await fetchScores(league.sport, league.league);
-      return { config: league, data };
-    })
-  );
-
-  const sectionsHtml = results
-    .map(result => renderLeague(result.config, result.data))
-    .filter(html => html !== '')
-    .join('<div class="section-divider"></div>');
-
-  if (sectionsHtml) {
-    widget.innerHTML = `
-      <div class="section-header">
-        <span class="section-title">🎓 Aggies & SEC Scores</span>
-      </div>
-      ${sectionsHtml}
-    `;
-  } else {
-    widget.innerHTML = `
-      <div class="section-header">
-        <span class="section-title">🎓 Aggies & SEC Scores</span>
-      </div>
-      <div class="no-games">No SEC games scheduled for today</div>
-    `;
+function autoScroll() {
+  if (isPaused) return;
+  const contentH = content.scrollHeight;
+  const containerH = container.clientHeight;
+  if (contentH <= containerH) return;
+  
+  const maxScroll = contentH - containerH;
+  scrollPos += scrollDir * 1;
+  
+  if (scrollPos >= maxScroll) {
+    scrollPos = maxScroll;
+    scrollDir = -1;
+    pause();
+  } else if (scrollPos <= 0) {
+    scrollPos = 0;
+    scrollDir = 1;
+    pause();
   }
+  content.style.transform = `translateY(-${scrollPos}px)`;
 }
 
-// Initial load
-updateWidget();
+function pause() {
+  isPaused = true;
+  clearTimeout(pauseTimeout);
+  pauseTimeout = setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
+}
 
-// Auto-refresh
-setInterval(updateWidget, CONFIG.refreshInterval);
+update();
+setInterval(update, CONFIG.refreshInterval);
+setInterval(autoScroll, CONFIG.scrollStepMs);
 </script>
-
 </body>
 </html>
