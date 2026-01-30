@@ -38,7 +38,7 @@ def fetch_birthdays():
         timeMax=time_max,
         singleEvents=True,
         orderBy='startTime',
-        maxResults=50
+        maxResults=8
     ).execute()
     
     events = events_result.get('items', [])
