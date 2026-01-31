@@ -280,11 +280,28 @@ async function update() {
     html += games.map(e => renderGame(e, hasHouston(e))).join('');
   });
   
-  content.innerHTML = html || '<div class="no-games">No games today</div>';
+  // Store original HTML and duplicate for seamless loop
+  const originalHtml = html || '<div class="no-games">No games today</div>';
+  content.innerHTML = originalHtml;
+  content.setAttribute('data-original', originalHtml);
   
   scrollPos = 0;
-  scrollDir = 1;
   content.style.transform = 'translateY(0)';
+  setupSeamlessScroll();
+}
+
+function setupSeamlessScroll() {
+  const originalHtml = content.getAttribute('data-original');
+  const containerH = container.offsetHeight;
+  const contentH = content.offsetHeight;
+  
+  // Only setup seamless scroll if content is taller than container
+  if (contentH > containerH) {
+    // Add a gap and duplicate content for seamless looping
+    const gap = 30; // pixels of gap between end and start
+    content.innerHTML = originalHtml + `<div style="height:${gap}px"></div>` + originalHtml;
+  }
+  
   startScrolling();
 }
 
@@ -299,17 +316,23 @@ function startScrolling() {
 
 function doScroll() {
   if (isPaused) return;
-  const contentH = content.offsetHeight;
+  
+  const originalHtml = content.getAttribute('data-original');
+  if (!originalHtml) return;
+  
+  // Calculate height of just the original content (half of total minus gap)
+  const totalH = content.offsetHeight;
   const containerH = container.offsetHeight;
-  if (contentH <= containerH) return;
+  const gap = 30;
+  const singleContentH = (totalH - gap) / 2;
+  
+  if (singleContentH <= containerH) return; // No need to scroll
   
   scrollPos += CONFIG.scrollPixelsPerStep;
   
-  // When we've scrolled past all content, loop back to top
-  if (scrollPos >= contentH) {
+  // When we've scrolled past the first copy, seamlessly jump back
+  if (scrollPos >= singleContentH + gap) {
     scrollPos = 0;
-    isPaused = true;
-    setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
   }
   
   content.style.transform = `translateY(-${scrollPos}px)`;
