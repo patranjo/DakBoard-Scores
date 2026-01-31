@@ -211,6 +211,11 @@ function isFavorite(team) {
   const shortName = (team.team.shortDisplayName || '').toUpperCase();
   const location = (team.team.location || '').toUpperCase();
   
+  // Debug logging
+  if (name.includes('TEXAS') || abbr.includes('TAM') || location.includes('TEXAS')) {
+    console.log('Checking team:', { abbr, name, shortName, location });
+  }
+  
   // Check abbreviation
   if (CONFIG.favoriteTeam.some(f => abbr === f.toUpperCase())) return true;
   
@@ -260,8 +265,65 @@ function isWithin24Hours(e) {
 }
 
 async function fetchScores(sport, league) {
+  // For college basketball, we need to fetch multiple groups
+  if (league === 'mens-college-basketball') {
+    try {
+      // Fetch SEC games (group 8) and Top 25 games (group 80)
+      const [secResponse, top25Response] = await Promise.all([
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=8`),
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=80`)
+      ]);
+      
+      const secData = secResponse.ok ? await secResponse.json() : { events: [] };
+      const top25Data = top25Response.ok ? await top25Response.json() : { events: [] };
+      
+      // Combine events, removing duplicates by event id
+      const allEvents = [...(secData.events || [])];
+      const secIds = new Set(allEvents.map(e => e.id));
+      
+      (top25Data.events || []).forEach(e => {
+        if (!secIds.has(e.id)) {
+          allEvents.push(e);
+        }
+      });
+      
+      return { events: allEvents, leagues: secData.leagues || top25Data.leagues };
+    } catch (e) {
+      console.error('Error fetching basketball:', e);
+      return null;
+    }
+  }
+  
+  // For college football, also fetch SEC and Top 25
+  if (league === 'college-football') {
+    try {
+      const [secResponse, top25Response] = await Promise.all([
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=8`),
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=80`)
+      ]);
+      
+      const secData = secResponse.ok ? await secResponse.json() : { events: [] };
+      const top25Data = top25Response.ok ? await top25Response.json() : { events: [] };
+      
+      const allEvents = [...(secData.events || [])];
+      const secIds = new Set(allEvents.map(e => e.id));
+      
+      (top25Data.events || []).forEach(e => {
+        if (!secIds.has(e.id)) {
+          allEvents.push(e);
+        }
+      });
+      
+      return { events: allEvents, leagues: secData.leagues || top25Data.leagues };
+    } catch (e) {
+      console.error('Error fetching football:', e);
+      return null;
+    }
+  }
+  
+  // For other sports (like baseball), use groups=100 to get all games
   try {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=100`);
     return r.ok ? r.json() : null;
   } catch { return null; }
 }
@@ -330,10 +392,16 @@ async function update() {
     let allGames = data.events.filter(isWithin24Hours);
     if (!allGames.length) return;
     
+    // Get favorite team games (Texas A&M) - ALWAYS show these
     const favGames = allGames.filter(hasFav);
+    
+    // Get SEC games (excluding favorite team games to avoid duplicates)
     const secGames = allGames.filter(e => isSecGame(e) && !hasFav(e));
+    
+    // Get Top 25 games (excluding SEC and favorite to avoid duplicates)
     const top25Games = allGames.filter(e => hasTop25(e) && !isSecGame(e) && !hasFav(e));
     
+    // Skip league if no relevant games
     if (!favGames.length && !secGames.length && !top25Games.length) return;
     
     const sortGames = (games) => games.sort((a,b) => {
@@ -343,15 +411,18 @@ async function update() {
     
     html += `<div class="league-label">${league.name}</div>`;
     
+    // Texas A&M games first (always show)
     if (favGames.length) {
       html += favGames.map(e => renderGame(e, true)).join('');
     }
     
+    // SEC games
     if (secGames.length) {
       if (favGames.length) html += `<div class="section-label">SEC</div>`;
       html += sortGames(secGames).map(e => renderGame(e, false)).join('');
     }
     
+    // Top 25 (non-SEC)
     if (top25Games.length) {
       html += `<div class="section-label">Top 25</div>`;
       html += sortGames(top25Games).map(e => renderGame(e, false)).join('');
