@@ -224,6 +224,11 @@ const CONFIG = {
     'TEXAS LONGHORNS',
     'VANDERBILT COMMODORES',
   ],
+  // Custom logos folder path (relative to index.html)
+  // Name your logo files by team abbreviation, e.g., "TAM.png", "ALA.png", "UGA.png"
+  customLogosPath: 'logos/',
+  customLogoExtension: '.png',  // Change to .svg, .jpg, etc. if needed
+  
   leagues: [
     { name: 'NCAAF', sport: 'football', league: 'college-football' },
     { name: 'NCAAM', sport: 'basketball', league: 'mens-college-basketball' },
@@ -235,6 +240,19 @@ const CONFIG = {
   scrollIntervalMs: 30,
   maxAgeHours: 24,
 };
+
+// Cache for tracking which custom logos exist
+const customLogoCache = {};
+
+// Check if custom logo exists (and cache the result)
+function getLogoUrl(team) {
+  const abbr = team.team.abbreviation || '';
+  const espnLogo = team.team.logo || '';
+  const customLogoUrl = CONFIG.customLogosPath + abbr + CONFIG.customLogoExtension;
+  
+  // Return custom logo path - the onerror handler will fall back to ESPN logo
+  return { custom: customLogoUrl, espn: espnLogo, abbr: abbr };
+}
 
 const content = document.getElementById('content');
 const container = document.getElementById('scrollContainer');
@@ -332,13 +350,16 @@ function renderGame(ev, fav) {
     const w = t.id === winnerId;
     const f = isFavorite(t);
     const rank = t.curatedRank?.current;
-    const logo = t.team.logo || '';
+    const espnLogo = t.team.logo || '';
     const score = (done || inProgress) ? t.score : '';
     const abbr = t.team.abbreviation || '';
     const name = t.team.shortDisplayName || t.team.displayName;
     
+    // Try custom logo first, fall back to ESPN logo on error
+    const customLogo = CONFIG.customLogosPath + abbr + CONFIG.customLogoExtension;
+    
     return `<div class="team-row ${w?'winner':''} ${f?'is-fav':''}">
-      <img class="team-logo" src="${logo}" onerror="this.style.display='none'">
+      <img class="team-logo" src="${customLogo}" onerror="this.onerror=null; this.src='${espnLogo}';">
       ${rank && rank <= 25 ? `<span class="rank">${rank}</span>` : ''}
       <span class="team-name">${abbr} ${name}</span>
       ${score ? `<span class="score">${score}</span>` : ''}
