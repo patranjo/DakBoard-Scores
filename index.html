@@ -186,9 +186,44 @@
 
 <script>
 const CONFIG = {
-  favoriteTeam: ['TAMU', 'TAM', 'TA&M', 'TEXAS A&M', 'A&M'],
-  secTeams: ['TAMU','TAM','TA&M','ALA','BAMA','ARK','AUB','FLA','UGA','GA','UK','LSU','MISS','OLE MISS','MSST','MIZ','OKLA','OU','SCAR','SC','TENN','TEX','TEXAS','VAN','VANDY'],
-  secNames: ['Texas A&M','Aggies','Alabama','Arkansas','Auburn','Florida','Georgia','Kentucky','LSU','Ole Miss','Mississippi State','Missouri','Oklahoma','South Carolina','Tennessee','Texas','Vanderbilt'],
+  // SEC Team IDs from ESPN (most reliable way to match)
+  secTeamIds: [
+    '333',   // Alabama
+    '245',   // Texas A&M
+    '8',     // Arkansas
+    '2',     // Auburn
+    '57',    // Florida
+    '61',    // Georgia
+    '96',    // Kentucky
+    '99',    // LSU
+    '145',   // Ole Miss
+    '344',   // Mississippi State
+    '142',   // Missouri
+    '201',   // Oklahoma
+    '2579',  // South Carolina
+    '2633',  // Tennessee
+    '251',   // Texas
+    '238',   // Vanderbilt
+  ],
+  // Exact SEC team display names
+  secExactNames: [
+    'ALABAMA CRIMSON TIDE',
+    'TEXAS A&M AGGIES',
+    'ARKANSAS RAZORBACKS',
+    'AUBURN TIGERS',
+    'FLORIDA GATORS',
+    'GEORGIA BULLDOGS',
+    'KENTUCKY WILDCATS',
+    'LSU TIGERS',
+    'OLE MISS REBELS',
+    'MISSISSIPPI STATE BULLDOGS',
+    'MISSOURI TIGERS',
+    'OKLAHOMA SOONERS',
+    'SOUTH CAROLINA GAMECOCKS',
+    'TENNESSEE VOLUNTEERS',
+    'TEXAS LONGHORNS',
+    'VANDERBILT COMMODORES',
+  ],
   leagues: [
     { name: 'NCAAF', sport: 'football', league: 'college-football' },
     { name: 'NCAAM', sport: 'basketball', league: 'mens-college-basketball' },
@@ -208,42 +243,34 @@ let scrollPos = 0, scrollDir = 1, isPaused = true, scrollInterval = null;
 function isFavorite(team) {
   const abbr = (team.team.abbreviation || '').toUpperCase();
   const name = (team.team.displayName || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
   const location = (team.team.location || '').toUpperCase();
+  const teamId = team.team.id;
   
-  // Debug logging
-  if (name.includes('TEXAS') || abbr.includes('TAM') || location.includes('TEXAS')) {
-    console.log('Checking team:', { abbr, name, shortName, location });
-  }
+  // Check team ID (most reliable)
+  if (teamId === '245') return true;
   
-  // Check abbreviation
-  if (CONFIG.favoriteTeam.some(f => abbr === f.toUpperCase())) return true;
+  // Check for exact abbreviation match
+  if (abbr === 'TAMU' || abbr === 'TAM') return true;
   
-  // Check if name contains Texas A&M
-  if (name.includes('TEXAS A&M') || name.includes('TEXAS A & M')) return true;
-  if (shortName.includes('TEXAS A&M') || shortName.includes('A&M')) return true;
-  if (location.includes('TEXAS A&M')) return true;
+  // Check for "Texas A&M" but NOT "Texas A&M-Corpus" or "East Texas A&M"
+  if (name.includes('TEXAS A&M') && !name.includes('CORPUS') && !name.includes('EAST')) return true;
+  if (location === 'TEXAS A&M') return true;
   
-  // Check for Aggies (but not other Aggies like Utah State)
-  if ((name.includes('AGGIES') || shortName.includes('AGGIES')) && 
-      (location.includes('TEXAS') || abbr === 'TAM' || abbr === 'TAMU')) return true;
+  // "Texas A&M Aggies" specifically
+  if (name === 'TEXAS A&M AGGIES') return true;
   
   return false;
 }
 
 function isSec(team) {
-  const abbr = (team.team.abbreviation || '').toUpperCase();
   const name = (team.team.displayName || '').toUpperCase();
-  const shortName = (team.team.shortDisplayName || '').toUpperCase();
-  const location = (team.team.location || '').toUpperCase();
+  const teamId = team.team.id;
   
-  // Check abbreviation
-  if (CONFIG.secTeams.some(s => abbr === s.toUpperCase())) return true;
+  // Check team ID first (most reliable)
+  if (CONFIG.secTeamIds.includes(teamId)) return true;
   
-  // Check full names
-  if (CONFIG.secNames.some(n => name.includes(n.toUpperCase()))) return true;
-  if (CONFIG.secNames.some(n => shortName.includes(n.toUpperCase()))) return true;
-  if (CONFIG.secNames.some(n => location.includes(n.toUpperCase()))) return true;
+  // Check exact display name match
+  if (CONFIG.secExactNames.includes(name)) return true;
   
   return false;
 }
