@@ -186,9 +186,9 @@
 
 <script>
 const CONFIG = {
-  favoriteTeam: ['TAMU', 'TA&M', 'TEXAS A&M'],
-  secTeams: ['TAMU','TA&M','ALA','BAMA','ARK','AUB','FLA','UGA','GA','UK','LSU','MISS','OLE MISS','MSST','MIZ','OKLA','OU','SCAR','SC','TENN','TEX','TEXAS','VAN','VANDY'],
-  secNames: ['Texas A&M','Alabama','Arkansas','Auburn','Florida','Georgia','Kentucky','LSU','Ole Miss','Mississippi State','Missouri','Oklahoma','South Carolina','Tennessee','Texas','Vanderbilt'],
+  favoriteTeam: ['TAMU', 'TAM', 'TA&M', 'TEXAS A&M', 'A&M'],
+  secTeams: ['TAMU','TAM','TA&M','ALA','BAMA','ARK','AUB','FLA','UGA','GA','UK','LSU','MISS','OLE MISS','MSST','MIZ','OKLA','OU','SCAR','SC','TENN','TEX','TEXAS','VAN','VANDY'],
+  secNames: ['Texas A&M','Aggies','Alabama','Arkansas','Auburn','Florida','Georgia','Kentucky','LSU','Ole Miss','Mississippi State','Missouri','Oklahoma','South Carolina','Tennessee','Texas','Vanderbilt'],
   leagues: [
     { name: 'NCAAF', sport: 'football', league: 'college-football' },
     { name: 'NCAAM', sport: 'basketball', league: 'mens-college-basketball' },
@@ -208,13 +208,39 @@ let scrollPos = 0, scrollDir = 1, isPaused = true, scrollInterval = null;
 function isFavorite(team) {
   const abbr = (team.team.abbreviation || '').toUpperCase();
   const name = (team.team.displayName || '').toUpperCase();
-  return CONFIG.favoriteTeam.some(f => abbr === f || name.includes(f));
+  const shortName = (team.team.shortDisplayName || '').toUpperCase();
+  const location = (team.team.location || '').toUpperCase();
+  
+  // Check abbreviation
+  if (CONFIG.favoriteTeam.some(f => abbr === f.toUpperCase())) return true;
+  
+  // Check if name contains Texas A&M
+  if (name.includes('TEXAS A&M') || name.includes('TEXAS A & M')) return true;
+  if (shortName.includes('TEXAS A&M') || shortName.includes('A&M')) return true;
+  if (location.includes('TEXAS A&M')) return true;
+  
+  // Check for Aggies (but not other Aggies like Utah State)
+  if ((name.includes('AGGIES') || shortName.includes('AGGIES')) && 
+      (location.includes('TEXAS') || abbr === 'TAM' || abbr === 'TAMU')) return true;
+  
+  return false;
 }
 
 function isSec(team) {
   const abbr = (team.team.abbreviation || '').toUpperCase();
   const name = (team.team.displayName || '').toUpperCase();
-  return CONFIG.secTeams.includes(abbr) || CONFIG.secNames.some(n => name.includes(n.toUpperCase()));
+  const shortName = (team.team.shortDisplayName || '').toUpperCase();
+  const location = (team.team.location || '').toUpperCase();
+  
+  // Check abbreviation
+  if (CONFIG.secTeams.some(s => abbr === s.toUpperCase())) return true;
+  
+  // Check full names
+  if (CONFIG.secNames.some(n => name.includes(n.toUpperCase()))) return true;
+  if (CONFIG.secNames.some(n => shortName.includes(n.toUpperCase()))) return true;
+  if (CONFIG.secNames.some(n => location.includes(n.toUpperCase()))) return true;
+  
+  return false;
 }
 
 function isRanked(team) {
