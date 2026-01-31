@@ -265,65 +265,15 @@ function isWithin24Hours(e) {
 }
 
 async function fetchScores(sport, league) {
-  // For college basketball, we need to fetch multiple groups
-  if (league === 'mens-college-basketball') {
-    try {
-      // Fetch SEC games (group 8) and Top 25 games (group 80)
-      const [secResponse, top25Response] = await Promise.all([
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=8`),
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=80`)
-      ]);
-      
-      const secData = secResponse.ok ? await secResponse.json() : { events: [] };
-      const top25Data = top25Response.ok ? await top25Response.json() : { events: [] };
-      
-      // Combine events, removing duplicates by event id
-      const allEvents = [...(secData.events || [])];
-      const secIds = new Set(allEvents.map(e => e.id));
-      
-      (top25Data.events || []).forEach(e => {
-        if (!secIds.has(e.id)) {
-          allEvents.push(e);
-        }
-      });
-      
-      return { events: allEvents, leagues: secData.leagues || top25Data.leagues };
-    } catch (e) {
-      console.error('Error fetching basketball:', e);
-      return null;
-    }
-  }
-  
-  // For college football, also fetch SEC and Top 25
-  if (league === 'college-football') {
-    try {
-      const [secResponse, top25Response] = await Promise.all([
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=8`),
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=80`)
-      ]);
-      
-      const secData = secResponse.ok ? await secResponse.json() : { events: [] };
-      const top25Data = top25Response.ok ? await top25Response.json() : { events: [] };
-      
-      const allEvents = [...(secData.events || [])];
-      const secIds = new Set(allEvents.map(e => e.id));
-      
-      (top25Data.events || []).forEach(e => {
-        if (!secIds.has(e.id)) {
-          allEvents.push(e);
-        }
-      });
-      
-      return { events: allEvents, leagues: secData.leagues || top25Data.leagues };
-    } catch (e) {
-      console.error('Error fetching football:', e);
-      return null;
-    }
-  }
-  
-  // For other sports (like baseball), use groups=100 to get all games
   try {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=100`);
+    // For college sports, use groups=50 to get all games
+    if (league === 'mens-college-basketball' || league === 'college-football' || league === 'college-baseball') {
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=50`);
+      return r.ok ? r.json() : null;
+    }
+    
+    // For other sports, use default
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
     return r.ok ? r.json() : null;
   } catch { return null; }
 }
