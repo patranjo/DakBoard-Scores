@@ -39,7 +39,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       padding-bottom: 6px;
-      border-bottom: 2px solid white;
+      border-bottom: 2px solid var(--accent-color);
       margin-bottom: 8px;
       flex-shrink: 0;
     }
@@ -303,20 +303,15 @@ function doScroll() {
   const containerH = container.offsetHeight;
   if (contentH <= containerH) return;
   
-  const maxScroll = contentH - containerH;
-  scrollPos += scrollDir * CONFIG.scrollPixelsPerStep;
+  scrollPos += CONFIG.scrollPixelsPerStep;
   
-  if (scrollPos >= maxScroll) {
-    scrollPos = maxScroll;
-    scrollDir = -1;
-    isPaused = true;
-    setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
-  } else if (scrollPos <= 0) {
+  // When we've scrolled past all content, loop back to top
+  if (scrollPos >= contentH) {
     scrollPos = 0;
-    scrollDir = 1;
     isPaused = true;
     setTimeout(() => { isPaused = false; }, CONFIG.scrollPauseMs);
   }
+  
   content.style.transform = `translateY(-${scrollPos}px)`;
 }
 
