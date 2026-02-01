@@ -240,7 +240,7 @@ function renderGame(ev, isHou) {
     
     return `<div class="team-row ${w?'winner':''} ${h?'is-hou':''}">
       <img class="team-logo" src="${logo}" onerror="this.style.display='none'">
-      <span class="team-name">${abbr} ${name}</span>
+      <span class="team-name">${name}</span>
       ${score ? `<span class="score">${score}</span>` : ''}
     </div>`;
   }).join('');
