@@ -224,18 +224,39 @@
                 if (upcomingRes.ok) {
                     const upcomingData = await upcomingRes.json();
                     upcomingLaunches = upcomingData.results || [];
+                    console.log('UPCOMING LAUNCHES:', upcomingLaunches.map(l => ({
+                        name: l.name,
+                        status_id: l.status?.id,
+                        status_name: l.status?.name,
+                        net: l.net
+                    })));
+                } else {
+                    console.error('Upcoming fetch failed:', upcomingRes.status);
                 }
                 
                 if (previousRes.ok) {
                     const previousData = await previousRes.json();
                     previousLaunches = previousData.results || [];
+                    console.log('PREVIOUS LAUNCHES:', previousLaunches.map(l => ({
+                        name: l.name,
+                        status_id: l.status?.id,
+                        status_name: l.status?.name,
+                        net: l.net,
+                        within12hrs: isWithin12Hours(l.net)
+                    })));
+                } else {
+                    console.error('Previous fetch failed:', previousRes.status);
                 }
                 
                 // Filter previous launches to only those within 12 hours that have a final status
                 const recentCompleted = previousLaunches.filter(launch => {
                     const status = getLaunchStatus(launch);
-                    return status && isWithin12Hours(launch.net);
+                    const within12 = isWithin12Hours(launch.net);
+                    console.log(`Checking ${launch.name}: status=${status}, within12hrs=${within12}`);
+                    return status && within12;
                 });
+                
+                console.log('RECENT COMPLETED:', recentCompleted.map(l => l.name));
                 
                 // Sort recent completed by launch time (most recent first)
                 recentCompleted.sort((a, b) => new Date(b.net) - new Date(a.net));
@@ -245,6 +266,11 @@
                 
                 // Combine: recent completed first, then upcoming
                 const allLaunches = [...recentCompleted, ...upcomingLaunches].slice(0, 6);
+                
+                console.log('FINAL LIST:', allLaunches.map(l => ({
+                    name: l.name,
+                    status: getLaunchStatus(l)
+                })));
                 
                 if (allLaunches.length === 0) {
                     container.innerHTML = '<div class="error">No launches found</div>';
