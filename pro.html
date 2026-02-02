@@ -211,8 +211,29 @@ function getStatus(comp) {
   const t = comp.status.type;
   if (t.completed) return { txt: 'Final', cls: 'final', state: 'post' };
   if (t.state === 'in') return { txt: t.shortDetail || 'Live', cls: 'live', state: 'in' };
+  
   const d = new Date(comp.date);
-  return { txt: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase(), cls: '', state: 'pre' };
+  const now = new Date();
+  
+  // Check if game is today
+  const isToday = d.toDateString() === now.toDateString();
+  
+  // Check if game is tomorrow
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  
+  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  
+  if (isToday) {
+    return { txt: timeStr, cls: '', state: 'pre' };
+  } else if (isTomorrow) {
+    return { txt: `Tom ${timeStr}`, cls: '', state: 'pre' };
+  } else {
+    // For games further out, show day abbreviation
+    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+    return { txt: `${dayStr} ${timeStr}`, cls: '', state: 'pre' };
+  }
 }
 
 function renderGame(ev, isHou) {
