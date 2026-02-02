@@ -108,6 +108,28 @@
         .error {
             color: #ff6464;
         }
+
+        .launch.success {
+            background: rgba(0, 200, 100, 0.15);
+            border-left: 3px solid #00c864;
+            padding-left: 0.5rem;
+            margin-left: -0.5rem;
+        }
+
+        .launch.success .countdown {
+            color: #00c864;
+        }
+
+        .launch.failure {
+            background: rgba(255, 80, 80, 0.15);
+            border-left: 3px solid #ff5050;
+            padding-left: 0.5rem;
+            margin-left: -0.5rem;
+        }
+
+        .launch.failure .countdown {
+            color: #ff5050;
+        }
     </style>
 </head>
 <body>
@@ -121,7 +143,9 @@
     </div>
 
     <script>
-        const API_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5';
+        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=6';
+        const PREVIOUS_URL = 'https://ll.thespacedevs.com/2.2.0/launch/previous/?limit=5';
+        const TWELVE_HOURS = 12 * 60 * 60 * 1000;
         
         function getCountdown(launchDate) {
             const now = new Date();
@@ -160,28 +184,66 @@
                 .split(',')[0];
         }
 
+        function getLaunchStatus(launch) {
+            // Status IDs: 3 = Success, 4 = Failure, 7 = Partial Failure
+            const statusId = launch.status?.id;
+            if (statusId === 3) return 'success';
+            if (statusId === 4 || statusId === 7) return 'failure';
+            return null;
+        }
+
+        function isWithin12Hours(dateStr) {
+            const launchTime = new Date(dateStr).getTime();
+            const now = Date.now();
+            return (now - launchTime) < TWELVE_HOURS;
+        }
+
         async function fetchLaunches() {
             const container = document.getElementById('launches');
             
             try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('API request failed');
+                // Fetch both upcoming and recent launches
+                const [upcomingRes, previousRes] = await Promise.all([
+                    fetch(UPCOMING_URL),
+                    fetch(PREVIOUS_URL)
+                ]);
                 
-                const data = await response.json();
-                const launches = data.results;
+                if (!upcomingRes.ok) throw new Error('API request failed');
                 
-                if (!launches || launches.length === 0) {
+                const upcomingData = await upcomingRes.json();
+                let allLaunches = upcomingData.results || [];
+                
+                // Add recent launches that are within 12 hours and have a final status
+                if (previousRes.ok) {
+                    const previousData = await previousRes.json();
+                    const recentCompleted = (previousData.results || []).filter(launch => {
+                        const status = getLaunchStatus(launch);
+                        return status && isWithin12Hours(launch.net);
+                    });
+                    
+                    // Prepend recent completed launches to the list
+                    allLaunches = [...recentCompleted, ...allLaunches];
+                }
+                
+                // Limit to 6 total
+                allLaunches = allLaunches.slice(0, 6);
+                
+                if (allLaunches.length === 0) {
                     container.innerHTML = '<div class="error">No launches found</div>';
                     return;
                 }
 
-                container.innerHTML = launches.map(launch => {
-                    const countdown = getCountdown(launch.net);
+                container.innerHTML = allLaunches.map(launch => {
+                    const status = getLaunchStatus(launch);
+                    const statusClass = status || '';
+                    const countdown = status === 'success' ? 'SUCCESS' : 
+                                     status === 'failure' ? 'FAILED' : 
+                                     getCountdown(launch.net);
                     const location = shortenLocation(launch.pad?.location?.name);
                     const provider = launch.launch_service_provider?.name || '';
                     
                     return `
-                        <div class="launch">
+                        <div class="launch ${statusClass}">
                             <div class="countdown">${countdown}</div>
                             <div class="launch-info">
                                 <div class="mission-name">${launch.name || 'Unknown'}</div>
