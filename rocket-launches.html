@@ -143,8 +143,8 @@
     </div>
 
     <script>
-        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=6';
-        const PREVIOUS_URL = 'https://ll.thespacedevs.com/2.2.0/launch/previous/?limit=5';
+        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10';
+        const PREVIOUS_URL = 'https://ll.thespacedevs.com/2.2.0/launch/previous/?limit=10';
         const TWELVE_HOURS = 12 * 60 * 60 * 1000;
         
         function getCountdown(launchDate) {
@@ -211,19 +211,61 @@
                 if (!upcomingRes.ok) throw new Error('API request failed');
                 
                 const upcomingData = await upcomingRes.json();
-                let allLaunches = upcomingData.results || [];
+                const upcomingLaunches = upcomingData.results || [];
                 
-                // Add recent launches that are within 12 hours and have a final status
+                // Build a map of previous launches by ID for status lookup
+                let previousMap = {};
+                let recentCompleted = [];
+                
                 if (previousRes.ok) {
                     const previousData = await previousRes.json();
-                    const recentCompleted = (previousData.results || []).filter(launch => {
-                        const status = getLaunchStatus(launch);
-                        return status && isWithin12Hours(launch.net);
-                    });
+                    const previousLaunches = previousData.results || [];
                     
-                    // Prepend recent completed launches to the list
-                    allLaunches = [...recentCompleted, ...allLaunches];
+                    // Create lookup map and filter recent completed launches
+                    previousLaunches.forEach(launch => {
+                        previousMap[launch.id] = launch;
+                        const status = getLaunchStatus(launch);
+                        if (status && isWithin12Hours(launch.net)) {
+                            recentCompleted.push(launch);
+                        }
+                    });
                 }
+                
+                // Get IDs of recent completed launches to avoid duplicates
+                const completedIds = new Set(recentCompleted.map(l => l.id));
+                
+                // Filter upcoming launches to remove any that are in our completed list
+                const filteredUpcoming = upcomingLaunches.filter(launch => {
+                    // Skip if this launch is already in completed list
+                    if (completedIds.has(launch.id)) return false;
+                    
+                    // Check if this "upcoming" launch actually has a status in previous
+                    const previousVersion = previousMap[launch.id];
+                    if (previousVersion) {
+                        const status = getLaunchStatus(previousVersion);
+                        if (status && isWithin12Hours(previousVersion.net)) {
+                            // Add the previous version (with status) to completed instead
+                            recentCompleted.push(previousVersion);
+                            completedIds.add(launch.id);
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                
+                // Sort recent completed by launch time (most recent first)
+                recentCompleted.sort((a, b) => new Date(b.net) - new Date(a.net));
+                
+                // Combine: recent completed first, then upcoming
+                let allLaunches = [...recentCompleted, ...filteredUpcoming];
+                
+                // Remove duplicates by ID (keep first occurrence)
+                const seenIds = new Set();
+                allLaunches = allLaunches.filter(launch => {
+                    if (seenIds.has(launch.id)) return false;
+                    seenIds.add(launch.id);
+                    return true;
+                });
                 
                 // Limit to 6 total
                 allLaunches = allLaunches.slice(0, 6);
