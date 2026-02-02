@@ -143,7 +143,7 @@
     </div>
 
     <script>
-        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10';
+        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10&hide_recent_previous=true';
         const PREVIOUS_URL = 'https://ll.thespacedevs.com/2.2.0/launch/previous/?limit=10';
         const TWELVE_HOURS = 12 * 60 * 60 * 1000;
         
@@ -152,7 +152,6 @@
         // 5 = Hold, 6 = In Flight, 7 = Partial Failure, 8 = TBC
         const SUCCESS_IDS = [3];
         const FAILURE_IDS = [4, 7];
-        const IN_FLIGHT_IDS = [6];
         
         function getCountdown(launchDate) {
             const now = new Date();
@@ -196,15 +195,9 @@
 
         function getLaunchStatus(launch) {
             const statusId = launch.status?.id;
-            const statusName = launch.status?.name?.toLowerCase() || '';
             
-            // Check by ID first
             if (SUCCESS_IDS.includes(statusId)) return 'success';
             if (FAILURE_IDS.includes(statusId)) return 'failure';
-            
-            // Check by name as fallback
-            if (statusName.includes('success')) return 'success';
-            if (statusName.includes('failure')) return 'failure';
             
             return null;
         }
@@ -214,90 +207,52 @@
             const now = Date.now();
             return (now - launchTime) < TWELVE_HOURS;
         }
-        
-        function hasLaunched(dateStr) {
-            return new Date(dateStr).getTime() < Date.now();
-        }
 
         async function fetchLaunches() {
             const container = document.getElementById('launches');
             
             try {
-                // Fetch both upcoming and recent launches
+                // Fetch both upcoming and previous launches separately
                 const [upcomingRes, previousRes] = await Promise.all([
                     fetch(UPCOMING_URL),
                     fetch(PREVIOUS_URL)
                 ]);
                 
-                if (!upcomingRes.ok) throw new Error('API request failed');
+                let upcomingLaunches = [];
+                let previousLaunches = [];
                 
-                const upcomingData = await upcomingRes.json();
-                const upcomingLaunches = upcomingData.results || [];
-                
-                // Build a map of previous launches by ID for status lookup
-                let previousMap = {};
+                if (upcomingRes.ok) {
+                    const upcomingData = await upcomingRes.json();
+                    upcomingLaunches = upcomingData.results || [];
+                }
                 
                 if (previousRes.ok) {
                     const previousData = await previousRes.json();
-                    const previousLaunches = previousData.results || [];
-                    
-                    // Create lookup map by ID
-                    previousLaunches.forEach(launch => {
-                        previousMap[launch.id] = launch;
-                    });
+                    previousLaunches = previousData.results || [];
                 }
                 
-                // Process all launches - use previous data if available for better status info
-                let processedLaunches = upcomingLaunches.map(launch => {
-                    // If this launch exists in previous with a final status, use that data
-                    const previousVersion = previousMap[launch.id];
-                    if (previousVersion) {
-                        const prevStatus = getLaunchStatus(previousVersion);
-                        if (prevStatus) {
-                            return { ...previousVersion, _finalStatus: prevStatus };
-                        }
-                    }
-                    
-                    // Check current launch status
-                    const currentStatus = getLaunchStatus(launch);
-                    if (currentStatus) {
-                        return { ...launch, _finalStatus: currentStatus };
-                    }
-                    
-                    return { ...launch, _finalStatus: null };
+                // Filter previous launches to only those within 12 hours that have a final status
+                const recentCompleted = previousLaunches.filter(launch => {
+                    const status = getLaunchStatus(launch);
+                    return status && isWithin12Hours(launch.net);
                 });
                 
-                // Filter: remove completed launches older than 12 hours
-                processedLaunches = processedLaunches.filter(launch => {
-                    if (launch._finalStatus && !isWithin12Hours(launch.net)) {
-                        return false; // Remove old completed launches
-                    }
-                    return true;
-                });
+                // Sort recent completed by launch time (most recent first)
+                recentCompleted.sort((a, b) => new Date(b.net) - new Date(a.net));
                 
-                // Sort: completed launches first (by launch time desc), then upcoming (by launch time asc)
-                processedLaunches.sort((a, b) => {
-                    const aCompleted = a._finalStatus !== null;
-                    const bCompleted = b._finalStatus !== null;
-                    
-                    if (aCompleted && !bCompleted) return -1;
-                    if (!aCompleted && bCompleted) return 1;
-                    if (aCompleted && bCompleted) {
-                        return new Date(b.net) - new Date(a.net); // Most recent completed first
-                    }
-                    return new Date(a.net) - new Date(b.net); // Soonest upcoming first
-                });
+                // Sort upcoming by launch time (soonest first)
+                upcomingLaunches.sort((a, b) => new Date(a.net) - new Date(b.net));
                 
-                // Limit to 6
-                processedLaunches = processedLaunches.slice(0, 6);
+                // Combine: recent completed first, then upcoming
+                const allLaunches = [...recentCompleted, ...upcomingLaunches].slice(0, 6);
                 
-                if (processedLaunches.length === 0) {
+                if (allLaunches.length === 0) {
                     container.innerHTML = '<div class="error">No launches found</div>';
                     return;
                 }
 
-                container.innerHTML = processedLaunches.map(launch => {
-                    const status = launch._finalStatus;
+                container.innerHTML = allLaunches.map(launch => {
+                    const status = getLaunchStatus(launch);
                     const statusClass = status || '';
                     
                     let countdown;
