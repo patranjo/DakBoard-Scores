@@ -143,15 +143,9 @@
     </div>
 
     <script>
-        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10&hide_recent_previous=true';
+        const UPCOMING_URL = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10';
         const PREVIOUS_URL = 'https://ll.thespacedevs.com/2.2.0/launch/previous/?limit=10';
         const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-        
-        // Status IDs from the API:
-        // 1 = Go for Launch, 2 = TBD, 3 = Success, 4 = Failure, 
-        // 5 = Hold, 6 = In Flight, 7 = Partial Failure, 8 = TBC
-        const SUCCESS_IDS = [3];
-        const FAILURE_IDS = [4, 7];
         
         function getCountdown(launchDate) {
             const now = new Date();
@@ -195,9 +189,15 @@
 
         function getLaunchStatus(launch) {
             const statusId = launch.status?.id;
+            const statusName = (launch.status?.name || '').toLowerCase();
             
-            if (SUCCESS_IDS.includes(statusId)) return 'success';
-            if (FAILURE_IDS.includes(statusId)) return 'failure';
+            // Check by ID: 3 = Success, 4 = Failure, 7 = Partial Failure
+            if (statusId === 3) return 'success';
+            if (statusId === 4 || statusId === 7) return 'failure';
+            
+            // Also check by name
+            if (statusName.includes('success')) return 'success';
+            if (statusName.includes('failure')) return 'failure';
             
             return null;
         }
@@ -212,65 +212,42 @@
             const container = document.getElementById('launches');
             
             try {
-                // Fetch both upcoming and previous launches separately
-                const [upcomingRes, previousRes] = await Promise.all([
-                    fetch(UPCOMING_URL),
-                    fetch(PREVIOUS_URL)
-                ]);
+                // Fetch BOTH endpoints
+                const upcomingPromise = fetch(UPCOMING_URL).then(r => r.ok ? r.json() : { results: [] });
+                const previousPromise = fetch(PREVIOUS_URL).then(r => r.ok ? r.json() : { results: [] });
                 
-                let upcomingLaunches = [];
-                let previousLaunches = [];
+                const [upcomingData, previousData] = await Promise.all([upcomingPromise, previousPromise]);
                 
-                if (upcomingRes.ok) {
-                    const upcomingData = await upcomingRes.json();
-                    upcomingLaunches = upcomingData.results || [];
-                    console.log('UPCOMING LAUNCHES:', upcomingLaunches.map(l => ({
-                        name: l.name,
-                        status_id: l.status?.id,
-                        status_name: l.status?.name,
-                        net: l.net
-                    })));
-                } else {
-                    console.error('Upcoming fetch failed:', upcomingRes.status);
-                }
+                const upcomingLaunches = upcomingData.results || [];
+                const previousLaunches = previousData.results || [];
                 
-                if (previousRes.ok) {
-                    const previousData = await previousRes.json();
-                    previousLaunches = previousData.results || [];
-                    console.log('PREVIOUS LAUNCHES:', previousLaunches.map(l => ({
-                        name: l.name,
-                        status_id: l.status?.id,
-                        status_name: l.status?.name,
-                        net: l.net,
-                        within12hrs: isWithin12Hours(l.net)
-                    })));
-                } else {
-                    console.error('Previous fetch failed:', previousRes.status);
-                }
+                // Get recent completed launches from PREVIOUS endpoint (this has the real status)
+                const recentCompleted = previousLaunches
+                    .filter(launch => {
+                        const status = getLaunchStatus(launch);
+                        return status !== null && isWithin12Hours(launch.net);
+                    })
+                    .map(launch => ({
+                        ...launch,
+                        _status: getLaunchStatus(launch)
+                    }));
                 
-                // Filter previous launches to only those within 12 hours that have a final status
-                const recentCompleted = previousLaunches.filter(launch => {
-                    const status = getLaunchStatus(launch);
-                    const within12 = isWithin12Hours(launch.net);
-                    console.log(`Checking ${launch.name}: status=${status}, within12hrs=${within12}`);
-                    return status && within12;
-                });
+                // Get IDs of completed launches to avoid duplicates
+                const completedIds = new Set(recentCompleted.map(l => l.id));
                 
-                console.log('RECENT COMPLETED:', recentCompleted.map(l => l.name));
+                // Filter upcoming to remove any that are already in completed list
+                const futureOnly = upcomingLaunches
+                    .filter(launch => !completedIds.has(launch.id))
+                    .map(launch => ({
+                        ...launch,
+                        _status: null
+                    }));
                 
-                // Sort recent completed by launch time (most recent first)
+                // Combine: completed first (sorted by time desc), then future (sorted by time asc)
                 recentCompleted.sort((a, b) => new Date(b.net) - new Date(a.net));
+                futureOnly.sort((a, b) => new Date(a.net) - new Date(b.net));
                 
-                // Sort upcoming by launch time (soonest first)
-                upcomingLaunches.sort((a, b) => new Date(a.net) - new Date(b.net));
-                
-                // Combine: recent completed first, then upcoming
-                const allLaunches = [...recentCompleted, ...upcomingLaunches].slice(0, 6);
-                
-                console.log('FINAL LIST:', allLaunches.map(l => ({
-                    name: l.name,
-                    status: getLaunchStatus(l)
-                })));
+                const allLaunches = [...recentCompleted, ...futureOnly].slice(0, 6);
                 
                 if (allLaunches.length === 0) {
                     container.innerHTML = '<div class="error">No launches found</div>';
@@ -278,7 +255,7 @@
                 }
 
                 container.innerHTML = allLaunches.map(launch => {
-                    const status = getLaunchStatus(launch);
+                    const status = launch._status;
                     const statusClass = status || '';
                     
                     let countdown;
@@ -306,7 +283,6 @@
                 }).join('');
                 
             } catch (error) {
-                console.error('Fetch error:', error);
                 container.innerHTML = '<div class="error">Unable to load data</div>';
             }
         }
