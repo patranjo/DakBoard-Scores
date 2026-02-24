@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>College Scoreboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: transparent;
+      --text-primary: #fff;
+      --text-muted: rgba(255,255,255,0.5);
+      --accent-color: #00CED1;
+      --aggie-maroon: #500000;
+      --score-winner: #fbbf24;
+      --line-color: rgba(255,255,255,0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      font-family: 'Oswald', sans-serif;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .widget {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+    }
+    .header {
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--accent-color);
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .scroll-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .scroll-content {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .league-label {
+      font-size: 1rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: #000;
+      background: var(--accent-color);
+      padding: 2px 8px;
+      margin: 8px 0 6px 0;
+      display: inline-block;
+      align-self: flex-start;
+    }
+    .league-label:first-child {
+      margin-top: 0;
+    }
+    .section-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: var(--score-winner);
+      padding: 6px 0 4px 0;
+    }
+    .game {
+      border-bottom: 1px solid var(--line-color);
+      padding: 8px 0;
+    }
+    .game:last-child {
+      border-bottom: none;
+    }
+    .game.favorite .team-row.is-fav .team-name {
+      color: var(--aggie-maroon);
+      font-weight: 700;
+    }
+    .game-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .teams {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    .team-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .team-logo {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .rank {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #000;
+      background: #4ade80;
+      padding: 1px 4px;
+      border-radius: 2px;
+      min-width: 20px;
+      text-align: center;
+    }
+    .team-name {
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    .team-row.winner .team-name,
+    .team-row.winner .score { 
+      color: var(--score-winner); 
+    }
+    .score {
+      font-size: 1.3rem;
+      font-weight: 700;
+      min-width: 30px;
+      text-align: right;
+      margin-left: auto;
+    }
+    .game-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
+      min-width: 80px;
+      padding-left: 10px;
+    }
+    .game-time {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    .game-time.live {
+      color: #ef4444;
+    }
+    .game-time.final {
+      color: #4ade80;
+    }
+    .game-network {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .no-games {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="widget">
+  <div class="header">College Scoreboard</div>
+  <div class="scroll-container" id="scrollContainer">
+    <div class="scroll-content" id="content">
+      <div class="loading">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  // SEC Team IDs from ESPN (most reliable way to match)
+  secTeamIds: [
+    '333',   // Alabama
+    '245',   // Texas A&M
+    '8',     // Arkansas
+    '2',     // Auburn
+    '57',    // Florida
+    '61',    // Georgia
+    '96',    // Kentucky
+    '99',    // LSU
+    '145',   // Ole Miss
+    '344',   // Mississippi State
+    '142',   // Missouri
+    '201',   // Oklahoma
+    '2579',  // South Carolina
+    '2633',  // Tennessee
+    '251',   // Texas
+    '238',   // Vanderbilt
+  ],
+  // Exact SEC team display names
+  secExactNames: [
+    'ALABAMA CRIMSON TIDE',
+    'TEXAS A&M AGGIES',
+    'ARKANSAS RAZORBACKS',
+    'AUBURN TIGERS',
+    'FLORIDA GATORS',
+    'GEORGIA BULLDOGS',
+    'KENTUCKY WILDCATS',
+    'LSU TIGERS',
+    'OLE MISS REBELS',
+    'MISSISSIPPI STATE BULLDOGS',
+    'MISSOURI TIGERS',
+    'OKLAHOMA SOONERS',
+    'SOUTH CAROLINA GAMECOCKS',
+    'TENNESSEE VOLUNTEERS',
+    'TEXAS LONGHORNS',
+    'VANDERBILT COMMODORES',
+  ],
+  // Custom logos folder path (relative to index.html)
+  // Name your logo files by team abbreviation, e.g., "TAM.png", "ALA.png", "UGA.png"
+  customLogosPath: 'logos/',
+  customLogoExtension: '.svg',  // Change to .svg, .jpg, etc. if needed
+  
+  leagues: [
+    { name: 'NCAAF', sport: 'football', league: 'college-football' },
+    { name: 'NCAAM', sport: 'basketball', league: 'mens-college-basketball' },
+    { name: 'NCAAB', sport: 'baseball', league: 'college-baseball' },
+  ],
+  refreshInterval: 60000,
+  scrollPauseMs: 2000,
+  scrollPixelsPerStep: 1,
+  scrollIntervalMs: 30,
+  maxAgeHours: 24,
+};
+
+// Cache for tracking which custom logos exist
+const customLogoCache = {};
+
+// Check if custom logo exists (and cache the result)
+function getLogoUrl(team) {
+  const abbr = team.team.abbreviation || '';
+  const espnLogo = team.team.logo || '';
+  const customLogoUrl = CONFIG.customLogosPath + abbr + CONFIG.customLogoExtension;
+  
+  // Return custom logo path - the onerror handler will fall back to ESPN logo
+  return { custom: customLogoUrl, espn: espnLogo, abbr: abbr };
+}
+
+const content = document.getElementById('content');
+const container = document.getElementById('scrollContainer');
+let scrollPos = 0, scrollDir = 1, isPaused = true, scrollInterval = null;
+
+function isFavorite(team) {
+  const abbr = (team.team.abbreviation || '').toUpperCase();
+  const name = (team.team.displayName || '').toUpperCase();
+  const location = (team.team.location || '').toUpperCase();
+  const teamId = team.team.id;
+  
+  // Check team ID (most reliable)
+  if (teamId === '245') return true;
+  
+  // Check for exact abbreviation match
+  if (abbr === 'TAMU' || abbr === 'TAM') return true;
+  
+  // Check for "Texas A&M" but NOT "Texas A&M-Corpus" or "East Texas A&M"
+  if (name.includes('TEXAS A&M') && !name.includes('CORPUS') && !name.includes('EAST')) return true;
+  if (location === 'TEXAS A&M') return true;
+  
+  // "Texas A&M Aggies" specifically
+  if (name === 'TEXAS A&M AGGIES') return true;
+  
+  return false;
+}
+
+function isSec(team) {
+  const name = (team.team.displayName || '').toUpperCase();
+  const teamId = team.team.id;
+  
+  // Check team ID first (most reliable)
+  if (CONFIG.secTeamIds.includes(teamId)) return true;
+  
+  // Check exact display name match
+  if (CONFIG.secExactNames.includes(name)) return true;
+  
+  return false;
+}
+
+function isRanked(team) {
+  const rank = team.curatedRank?.current;
+  return rank && rank <= 25;
+}
+
+function isSecGame(e) { return e.competitions[0].competitors.some(isSec); }
+function hasFav(e) { return e.competitions[0].competitors.some(isFavorite); }
+function hasTop25(e) { return e.competitions[0].competitors.some(isRanked); }
+
+function isWithin24Hours(e) {
+  const gameDate = new Date(e.competitions[0].date);
+  const now = new Date();
+  const hoursDiff = (now - gameDate) / (1000 * 60 * 60);
+  return hoursDiff < CONFIG.maxAgeHours && hoursDiff > -48;
+}
+
+async function fetchScores(sport, league) {
+  try {
+    if (league === 'mens-college-basketball' || league === 'college-football') {
+      // Basketball and football use groups=50 to get all division games
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?groups=50`);
+      return r.ok ? r.json() : null;
+    }
+    if (league === 'college-baseball') {
+      // Baseball does not support groups=50 — use limit=300 to get all games
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?limit=300`);
+      return r.ok ? r.json() : null;
+    }
+    // For other sports, use default
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+    return r.ok ? r.json() : null;
+  } catch { return null; }
+}
+
+function getStatus(comp) {
+  const t = comp.status.type;
+  if (t.completed) return { txt: 'Final', cls: 'final', state: 'post' };
+  if (t.state === 'in') return { txt: t.shortDetail || 'Live', cls: 'live', state: 'in' };
+  const d = new Date(comp.date);
+  return { txt: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase(), cls: '', state: 'pre' };
+}
+
+function renderGame(ev, fav) {
+  const comp = ev.competitions[0];
+  const st = getStatus(comp);
+  const teams = [...comp.competitors].sort((a,b) => a.homeAway === 'away' ? -1 : 1);
+  const done = comp.status.type.completed;
+  const inProgress = comp.status.type.state === 'in';
+  
+  let winnerId = null;
+  if (done) {
+    const s = teams.map(t => parseInt(t.score)||0);
+    if (s[0] !== s[1]) winnerId = s[0] > s[1] ? teams[0].id : teams[1].id;
+  }
+
+  const network = comp.broadcasts?.[0]?.names?.[0] || '';
+
+  const teamsHtml = teams.map(t => {
+    const w = t.id === winnerId;
+    const f = isFavorite(t);
+    const rank = t.curatedRank?.current;
+    const espnLogo = t.team.logo || '';
+    const score = (done || inProgress) ? t.score : '';
+    const abbr = t.team.abbreviation || '';
+    const name = t.team.shortDisplayName || t.team.displayName;
+    
+    // Try custom logo first, fall back to ESPN logo on error
+    const customLogo = CONFIG.customLogosPath + abbr + CONFIG.customLogoExtension;
+    
+    return `<div class="team-row ${w?'winner':''} ${f?'is-fav':''}">
+      <img class="team-logo" src="${customLogo}" onerror="this.onerror=null; this.src='${espnLogo}';">
+      ${rank && rank <= 25 ? `<span class="rank">${rank}</span>` : ''}
+      <span class="team-name">${name}</span>
+      ${score ? `<span class="score">${score}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="game ${fav?'favorite':''}">
+    <div class="game-content">
+      <div class="teams">${teamsHtml}</div>
+      <div class="game-info">
+        <span class="game-time ${st.cls}">${st.txt}</span>
+        ${network ? `<span class="game-network">${network}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function update() {
+  const results = await Promise.all(CONFIG.leagues.map(async l => {
+    const data = await fetchScores(l.sport, l.league);
+    return { league: l, data };
+  }));
+  
+  let html = '';
+  results.forEach(({ league, data }) => {
+    if (!data?.events) return;
+    
+    let allGames = data.events.filter(isWithin24Hours);
+    if (!allGames.length) return;
+    
+    // Get favorite team games (Texas A&M) - ALWAYS show these
+    const favGames = allGames.filter(hasFav);
+    
+    // Get SEC games (excluding favorite team games to avoid duplicates)
+    const secGames = allGames.filter(e => isSecGame(e) && !hasFav(e));
+    
+    // Get Top 25 games (excluding SEC and favorite to avoid duplicates)
+    const top25Games = allGames.filter(e => hasTop25(e) && !isSecGame(e) && !hasFav(e));
+    
+    // Skip league if no relevant games
+    if (!favGames.length && !secGames.length && !top25Games.length) return;
+    
+    const sortGames = (games) => games.sort((a,b) => {
+      const order = { 'in': 0, 'pre': 1, 'post': 2 };
+      return (order[a.competitions[0].status.type.state]??3) - (order[b.competitions[0].status.type.state]??3);
+    });
+    
+    html += `<div class="league-label">${league.name}</div>`;
+    
+    // Texas A&M games first (always show)
+    if (favGames.length) {
+      html += favGames.map(e => renderGame(e, true)).join('');
+    }
+    
+    // SEC games
+    if (secGames.length) {
+      if (favGames.length) html += `<div class="section-label">SEC</div>`;
+      html += sortGames(secGames).map(e => renderGame(e, false)).join('');
+    }
+    
+    // Top 25 (non-SEC)
+    if (top25Games.length) {
+      html += `<div class="section-label">Top 25</div>`;
+      html += sortGames(top25Games).map(e => renderGame(e, false)).join('');
+    }
+  });
+  
+  // Store original HTML and duplicate for seamless loop
+  const originalHtml = html || '<div class="no-games">No games today</div>';
+  content.innerHTML = originalHtml;
+  content.setAttribute('data-original', originalHtml);
+  
+  scrollPos = 0;
+  content.style.transform = 'translateY(0)';
+  setupSeamlessScroll();
+}
+
+function setupSeamlessScroll() {
+  const originalHtml = content.getAttribute('data-original');
+  const containerH = container.offsetHeight;
+  const contentH = content.offsetHeight;
+  
+  // Only setup seamless scroll if content is taller than container
+  if (contentH > containerH) {
+    // Add a gap and duplicate content for seamless looping
+    const gap = 30; // pixels of gap between end and start
+    content.innerHTML = originalHtml + `<div style="height:${gap}px"></div>` + originalHtml;
+  }
+  
+  startScrolling();
+}
+
+function startScrolling() {
+  if (scrollInterval) clearInterval(scrollInterval);
+  isPaused = true;
+  setTimeout(() => {
+    isPaused = false;
+    scrollInterval = setInterval(doScroll, CONFIG.scrollIntervalMs);
+  }, CONFIG.scrollPauseMs);
+}
+
+function doScroll() {
+  if (isPaused) return;
+  
+  const originalHtml = content.getAttribute('data-original');
+  if (!originalHtml) return;
+  
+  // Calculate height of just the original content (half of total minus gap)
+  const totalH = content.offsetHeight;
+  const containerH = container.offsetHeight;
+  const gap = 30;
+  const singleContentH = (totalH - gap) / 2;
+  
+  if (singleContentH <= containerH) return; // No need to scroll
+  
+  scrollPos += CONFIG.scrollPixelsPerStep;
+  
+  // When we've scrolled past the first copy, seamlessly jump back
+  if (scrollPos >= singleContentH + gap) {
+    scrollPos = 0;
+  }
+  
+  content.style.transform = `translateY(-${scrollPos}px)`;
+}
+
+update();
+setInterval(update, CONFIG.refreshInterval);
+</script>
+</body>
+</html>
